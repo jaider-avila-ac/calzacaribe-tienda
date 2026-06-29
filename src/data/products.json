@@ -1,0 +1,823 @@
+[
+  {
+    "id": 1,
+    "nombre": "Tacón Stiletto Elegance",
+    "descripcion": "Tacón de aguja en cuero sintético de alta calidad. Diseño elegante ideal para eventos y ocasiones especiales. Plantilla acolchada para mayor comodidad.",
+    "categoriaId": 1, "subcategoria": "Tacones", "genero": "mujer",
+    "precio": 169000, "descuento": 15, "marca": "Calzacaribe",
+    "etiquetas": ["mas-vendido"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=700&q=80",
+      "https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?w=700&q=80"
+    ],
+    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    "stock": 20,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Tipo de tacón": "Stiletto",
+      "Altura del tacón": "10 cm",
+      "Material exterior": "Cuero sintético",
+      "Tipo de suela": "Goma antideslizante",
+      "Cierre": "Sin cordones",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 4, "precioExtra": 0},
+          {"valor": "36", "stock": 6, "precioExtra": 0},
+          {"valor": "37", "stock": 3, "precioExtra": 0},
+          {"valor": "38", "stock": 5, "precioExtra": 0},
+          {"valor": "39", "stock": 0, "precioExtra": 0},
+          {"valor": "40", "stock": 2, "precioExtra": 10000}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Negro",    "hex": "#1a1a1a", "imagenIndex": 0},
+          {"valor": "Rojo vino","hex": "#7c1a1a", "imagenIndex": 1},
+          {"valor": "Nude",     "hex": "#c8a882", "imagenIndex": 0}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 2,
+    "nombre": "Botín Chelsea Casual",
+    "descripcion": "Botín estilo Chelsea con elásticos laterales. Perfecto para un look urbano y moderno. Suela de goma antideslizante.",
+    "categoriaId": 1, "subcategoria": "Botines", "genero": "mujer",
+    "precio": 219000, "descuento": 0, "marca": "Urban Steps",
+    "etiquetas": ["nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=700&q=80",
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&q=80"
+    ],
+    "stock": 20,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Estilo": "Chelsea",
+      "Cierre": "Elásticos laterales",
+      "Material exterior": "Cuero sintético",
+      "Tipo de suela": "Goma antideslizante",
+      "Temporada": "Otoño / Invierno"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 2, "precioExtra": 0},
+          {"valor": "36", "stock": 4, "precioExtra": 0},
+          {"valor": "37", "stock": 6, "precioExtra": 0},
+          {"valor": "38", "stock": 4, "precioExtra": 0},
+          {"valor": "39", "stock": 3, "precioExtra": 0},
+          {"valor": "40", "stock": 1, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Negro", "hex": "#1a1a1a", "imagenIndex": 0},
+          {"valor": "Camel", "hex": "#c19a6b", "imagenIndex": 1}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 3,
+    "nombre": "Baleta Comfort Flex",
+    "descripcion": "Baleta ligera con plantilla memory foam. Ideal para el uso diario con máxima comodidad. Diseño sin cordones de fácil puesto.",
+    "categoriaId": 1, "subcategoria": "Baletas", "genero": "mujer",
+    "precio": 89000, "descuento": 20, "marca": "Calzacaribe",
+    "etiquetas": ["oferta"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=700&q=80"
+    ],
+    "stock": 35,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Plantilla": "Memory foam",
+      "Cierre": "Sin cordones",
+      "Material exterior": "Cuero sintético",
+      "Tipo de suela": "Goma flexible",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 8,  "precioExtra": 0},
+          {"valor": "36", "stock": 10, "precioExtra": 0},
+          {"valor": "37", "stock": 7,  "precioExtra": 0},
+          {"valor": "38", "stock": 5,  "precioExtra": 0},
+          {"valor": "39", "stock": 3,  "precioExtra": 0},
+          {"valor": "40", "stock": 2,  "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Blanco", "hex": "#f5f5f5"},
+          {"valor": "Rosa",   "hex": "#f9a8d4"},
+          {"valor": "Negro",  "hex": "#1a1a1a"},
+          {"valor": "Beige",  "hex": "#e8d5b7"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 4,
+    "nombre": "Sandalia Destalonada Strappy",
+    "descripcion": "Sandalia con tiras cruzadas y correa en el tobillo. Material vegano, perfecta para el verano caribeño.",
+    "categoriaId": 5, "subcategoria": "Elegantes", "genero": "mujer",
+    "precio": 119000, "descuento": 0, "marca": "Sun & Style",
+    "etiquetas": ["nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1603487742131-4160ec999306?w=700&q=80"
+    ],
+    "stock": 20,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Tipo": "Destalonada",
+      "Material": "Vegano",
+      "Cierre": "Tiras con hebilla",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 3, "precioExtra": 0},
+          {"valor": "36", "stock": 5, "precioExtra": 0},
+          {"valor": "37", "stock": 4, "precioExtra": 0},
+          {"valor": "38", "stock": 6, "precioExtra": 0},
+          {"valor": "39", "stock": 2, "precioExtra": 0},
+          {"valor": "40", "stock": 0, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Dorado",   "hex": "#d4a843"},
+          {"valor": "Plateado", "hex": "#9e9e9e"},
+          {"valor": "Negro",    "hex": "#1a1a1a"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 5,
+    "nombre": "Sneaker Runner Pro W",
+    "descripcion": "Zapatilla deportiva para mujer con tecnología de amortiguación. Ligera y transpirable, ideal para running y gym.",
+    "categoriaId": 1, "subcategoria": "Tenis", "genero": "mujer",
+    "precio": 279000, "descuento": 10, "marca": "SpeedFit",
+    "etiquetas": ["mas-vendido", "nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&q=80",
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=700&q=80"
+    ],
+    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    "stock": 24,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Actividad": "Running / Gym",
+      "Cierre": "Cordones",
+      "Amortiguación": "Tecnología avanzada",
+      "Material": "Malla transpirable",
+      "Peso": "Ligero",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 5,  "precioExtra": 0},
+          {"valor": "36", "stock": 4,  "precioExtra": 0},
+          {"valor": "37", "stock": 6,  "precioExtra": 0},
+          {"valor": "38", "stock": 3,  "precioExtra": 0},
+          {"valor": "39", "stock": 4,  "precioExtra": 0},
+          {"valor": "40", "stock": 2,  "precioExtra": 15000}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Blanco/Rosa",  "hex": "#f9a8d4", "imagenIndex": 0},
+          {"valor": "Negro/Lime",   "hex": "#bef264", "imagenIndex": 1},
+          {"valor": "Azul/Blanco",  "hex": "#93c5fd", "imagenIndex": 0}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 6,
+    "nombre": "Oxford Clásico Hombre",
+    "descripcion": "Zapato Oxford de cuero genuino con costura Blake. El clásico ideal para reuniones de negocios. Incluye caja de regalo.",
+    "categoriaId": 2, "subcategoria": "Formales", "genero": "hombre",
+    "precio": 315000, "descuento": 0, "marca": "ClassicStep",
+    "etiquetas": ["mas-vendido"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=700&q=80",
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=700&q=80"
+    ],
+    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    "stock": 25,
+    "caracteristicas": {
+      "Género": "Hombre",
+      "Tipo": "Oxford",
+      "Material": "Cuero genuino",
+      "Costura": "Blake",
+      "Tipo de suela": "Cuero / Goma",
+      "Ocasión": "Formal / Negocios",
+      "Incluye": "Caja de regalo"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "38", "stock": 2, "precioExtra": 0},
+          {"valor": "39", "stock": 4, "precioExtra": 0},
+          {"valor": "40", "stock": 5, "precioExtra": 0},
+          {"valor": "41", "stock": 6, "precioExtra": 0},
+          {"valor": "42", "stock": 4, "precioExtra": 0},
+          {"valor": "43", "stock": 3, "precioExtra": 0},
+          {"valor": "44", "stock": 1, "precioExtra": 20000}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Negro",      "hex": "#1a1a1a", "imagenIndex": 0},
+          {"valor": "Café oscuro","hex": "#4a2c0a", "imagenIndex": 1}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 7,
+    "nombre": "Mocasín Urbano",
+    "descripcion": "Mocasín sin cordones en cuero suave. Versátil para combinar con jeans o pantalón de vestir. Suela antideslizante.",
+    "categoriaId": 2, "subcategoria": "Mocasines", "genero": "hombre",
+    "precio": 245000, "descuento": 0, "marca": "Calzacaribe",
+    "etiquetas": [],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=700&q=80"
+    ],
+    "stock": 23,
+    "caracteristicas": {
+      "Género": "Hombre",
+      "Cierre": "Sin cordones",
+      "Material": "Cuero suave",
+      "Tipo de suela": "Goma antideslizante",
+      "Ocasión": "Casual / Formal",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "38", "stock": 3, "precioExtra": 0},
+          {"valor": "39", "stock": 5, "precioExtra": 0},
+          {"valor": "40", "stock": 4, "precioExtra": 0},
+          {"valor": "41", "stock": 6, "precioExtra": 0},
+          {"valor": "42", "stock": 3, "precioExtra": 0},
+          {"valor": "43", "stock": 2, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Negro",      "hex": "#1a1a1a"},
+          {"valor": "Café",       "hex": "#7c4a1a"},
+          {"valor": "Azul marino","hex": "#1e3a5f"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 8,
+    "nombre": "Sneaker Urbano X200",
+    "descripcion": "Sneaker casual de moda con suela chunky. Diseño streetwear con materiales premium. El accesorio perfecto del look urbano.",
+    "categoriaId": 2, "subcategoria": "Sneakers", "genero": "hombre",
+    "precio": 349000, "descuento": 15, "marca": "StreetKick",
+    "etiquetas": ["nuevo", "oferta"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=700&q=80",
+      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=700&q=80"
+    ],
+    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+    "stock": 24,
+    "caracteristicas": {
+      "Género": "Hombre",
+      "Estilo": "Streetwear",
+      "Tipo de suela": "Chunky",
+      "Material": "Premium sintético",
+      "Ocasión": "Casual / Urbano",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "39", "stock": 4, "precioExtra": 0},
+          {"valor": "40", "stock": 6, "precioExtra": 0},
+          {"valor": "41", "stock": 5, "precioExtra": 0},
+          {"valor": "42", "stock": 4, "precioExtra": 0},
+          {"valor": "43", "stock": 3, "precioExtra": 0},
+          {"valor": "44", "stock": 2, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Blanco total","hex": "#f5f5f5", "imagenIndex": 0},
+          {"valor": "Negro",       "hex": "#1a1a1a", "imagenIndex": 1},
+          {"valor": "Gris",        "hex": "#6b7280", "imagenIndex": 0}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 9,
+    "nombre": "Bota Táctica Hombre",
+    "descripcion": "Bota de cuero resistente con puntera reforzada. Ideal para trabajo y campo. Impermeabilidad hasta 48 horas.",
+    "categoriaId": 2, "subcategoria": "Botas", "genero": "hombre",
+    "precio": 389000, "descuento": 0, "marca": "WorkForce",
+    "etiquetas": [],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1608256246200-53e635b5b65f?w=700&q=80"
+    ],
+    "stock": 19,
+    "caracteristicas": {
+      "Género": "Hombre",
+      "Puntera": "Reforzada",
+      "Material": "Cuero resistente",
+      "Impermeabilidad": "Hasta 48 horas",
+      "Uso": "Trabajo / Campo",
+      "Tipo de suela": "Goma gruesa",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "39", "stock": 2,  "precioExtra": 0},
+          {"valor": "40", "stock": 3,  "precioExtra": 0},
+          {"valor": "41", "stock": 4,  "precioExtra": 0},
+          {"valor": "42", "stock": 4,  "precioExtra": 0},
+          {"valor": "43", "stock": 3,  "precioExtra": 0},
+          {"valor": "44", "stock": 2,  "precioExtra": 20000},
+          {"valor": "45", "stock": 1,  "precioExtra": 20000}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Café oscuro","hex": "#4a2c0a"},
+          {"valor": "Negro",      "hex": "#1a1a1a"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 10,
+    "nombre": "Tenis Niño Velcro Junior",
+    "descripcion": "Tenis ligero para niños con cierre velcro de doble banda. Suela flexible que acompaña el movimiento natural del pie.",
+    "categoriaId": 3, "subcategoria": "Tenis", "genero": "niños",
+    "precio": 129000, "descuento": 0, "marca": "KidStep",
+    "etiquetas": ["nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1514989771522-458c9b6c035a?w=700&q=80"
+    ],
+    "stock": 31,
+    "caracteristicas": {
+      "Género": "Niño",
+      "Edad": "4 – 12 años",
+      "Cierre": "Velcro doble banda",
+      "Material": "Sintético ligero",
+      "Tipo de suela": "Flexible",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "28", "stock": 5, "precioExtra": 0},
+          {"valor": "29", "stock": 4, "precioExtra": 0},
+          {"valor": "30", "stock": 6, "precioExtra": 0},
+          {"valor": "31", "stock": 5, "precioExtra": 0},
+          {"valor": "32", "stock": 4, "precioExtra": 0},
+          {"valor": "33", "stock": 3, "precioExtra": 0},
+          {"valor": "34", "stock": 2, "precioExtra": 0},
+          {"valor": "35", "stock": 2, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Azul",  "hex": "#3b82f6"},
+          {"valor": "Rojo",  "hex": "#dc2626"},
+          {"valor": "Verde", "hex": "#16a34a"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 11,
+    "nombre": "Sandalia Playera Niño",
+    "descripcion": "Sandalia resistente al agua y la arena. Con velcro ajustable y suela antideslizante. Perfecta para la playa y piscina.",
+    "categoriaId": 3, "subcategoria": "Sandalias", "genero": "niños",
+    "precio": 69000, "descuento": 0, "marca": "Calzacaribe",
+    "etiquetas": [],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1603487742131-4160ec999306?w=700&q=80"
+    ],
+    "stock": 30,
+    "caracteristicas": {
+      "Género": "Niño",
+      "Edad": "3 – 10 años",
+      "Cierre": "Velcro ajustable",
+      "Resistencia": "Agua y arena",
+      "Tipo de suela": "Antideslizante",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "28", "stock": 8, "precioExtra": 0},
+          {"valor": "29", "stock": 7, "precioExtra": 0},
+          {"valor": "30", "stock": 6, "precioExtra": 0},
+          {"valor": "31", "stock": 5, "precioExtra": 0},
+          {"valor": "32", "stock": 4, "precioExtra": 0},
+          {"valor": "33", "stock": 0, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Azul",    "hex": "#3b82f6"},
+          {"valor": "Amarillo","hex": "#fbbf24"},
+          {"valor": "Naranja", "hex": "#f97316"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 12,
+    "nombre": "Blusa Fluida Tropical",
+    "descripcion": "Blusa ligera de tela chiffon con estampado floral. Diseño escote en V con mangas 3/4. Perfecta para el clima del Caribe.",
+    "categoriaId": 4, "subcategoria": "Blusas", "genero": "mujer",
+    "precio": 79000, "descuento": 0, "marca": "Caribe Fashion",
+    "etiquetas": ["nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1485518882345-15568b007407?w=700&q=80"
+    ],
+    "stock": 33,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Tipo de manga": "3/4",
+      "Escote": "En V",
+      "Composición": "Chiffon 100% poliéster",
+      "Estampado": "Floral",
+      "Corte": "Regular",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "XS",  "stock": 4,  "precioExtra": 0},
+          {"valor": "S",   "stock": 8,  "precioExtra": 0},
+          {"valor": "M",   "stock": 10, "precioExtra": 0},
+          {"valor": "L",   "stock": 7,  "precioExtra": 0},
+          {"valor": "XL",  "stock": 4,  "precioExtra": 0},
+          {"valor": "XXL", "stock": 2,  "precioExtra": 5000}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Blanco floral","hex": "#f5f5f5"},
+          {"valor": "Azul cielo",  "hex": "#bfdbfe"},
+          {"valor": "Rosa coral",  "hex": "#fca5a5"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 13,
+    "nombre": "Sweater Oversize Casual",
+    "descripcion": "Suéter oversize de punto grueso. Calidad premium en hilo mixto algodón-acrílico. Escote redondo y mangas largas.",
+    "categoriaId": 4, "subcategoria": "Sweaters", "genero": "unisex",
+    "precio": 139000, "descuento": 0, "marca": "KnitCo",
+    "etiquetas": ["mas-vendido"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=700&q=80"
+    ],
+    "stock": 28,
+    "caracteristicas": {
+      "Género": "Unisex",
+      "Corte": "Oversize",
+      "Tipo de manga": "Larga",
+      "Escote": "Redondo",
+      "Composición": "60% Algodón · 40% Acrílico",
+      "Cuidado": "Lavado a mano",
+      "Temporada": "Otoño / Invierno"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "S",   "stock": 5, "precioExtra": 0},
+          {"valor": "M",   "stock": 8, "precioExtra": 0},
+          {"valor": "L",   "stock": 7, "precioExtra": 0},
+          {"valor": "XL",  "stock": 5, "precioExtra": 0},
+          {"valor": "XXL", "stock": 3, "precioExtra": 8000}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Crema",       "hex": "#fef3c7"},
+          {"valor": "Gris marengo","hex": "#374151"},
+          {"valor": "Beige",       "hex": "#d6c3a8"},
+          {"valor": "Negro",       "hex": "#1a1a1a"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 14,
+    "nombre": "Jean Skinny Mujer",
+    "descripcion": "Jean de corte skinny en denim elástico de alta calidad. Diseño de cintura alta que estiliza la figura. Lavado oscuro premium.",
+    "categoriaId": 4, "subcategoria": "Jeans", "genero": "mujer",
+    "precio": 129000, "descuento": 25, "marca": "DenimPro",
+    "etiquetas": ["oferta"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=700&q=80"
+    ],
+    "stock": 30,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Corte": "Skinny",
+      "Cintura": "Alta",
+      "Composición": "92% Algodón · 8% Elastano",
+      "Lavado": "Oscuro premium",
+      "Bolsillos": "4 bolsillos",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "6",  "stock": 4, "precioExtra": 0},
+          {"valor": "8",  "stock": 6, "precioExtra": 0},
+          {"valor": "10", "stock": 8, "precioExtra": 0},
+          {"valor": "12", "stock": 6, "precioExtra": 0},
+          {"valor": "14", "stock": 4, "precioExtra": 0},
+          {"valor": "16", "stock": 2, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Azul oscuro","hex": "#1e3a5f"},
+          {"valor": "Negro",      "hex": "#1a1a1a"},
+          {"valor": "Azul medio", "hex": "#3b6fa0"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 15,
+    "nombre": "Sandalia Plana Caribe",
+    "descripcion": "Sandalia de cuero suave con correa ajustable al tobillo. Suela de goma ligera. El calzado ideal para el día a día en el trópico.",
+    "categoriaId": 5, "subcategoria": "Casuales", "genero": "mujer",
+    "precio": 89000, "descuento": 0, "marca": "Calzacaribe",
+    "etiquetas": [],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1603487742131-4160ec999306?w=700&q=80"
+    ],
+    "stock": 29,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Tipo": "Plana con correa",
+      "Cierre": "Hebilla ajustable",
+      "Material": "Cuero suave",
+      "Tipo de suela": "Goma ligera",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 5, "precioExtra": 0},
+          {"valor": "36", "stock": 8, "precioExtra": 0},
+          {"valor": "37", "stock": 6, "precioExtra": 0},
+          {"valor": "38", "stock": 5, "precioExtra": 0},
+          {"valor": "39", "stock": 3, "precioExtra": 0},
+          {"valor": "40", "stock": 2, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Camel", "hex": "#c19a6b"},
+          {"valor": "Blanco","hex": "#f5f5f5"},
+          {"valor": "Negro", "hex": "#1a1a1a"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 16,
+    "nombre": "Camisa Lino Hombre",
+    "descripcion": "Camisa de lino natural de manga larga. Fresca y transpirable, perfecta para el clima tropical. Corte slim fit.",
+    "categoriaId": 4, "subcategoria": "Camisas", "genero": "hombre",
+    "precio": 119000, "descuento": 10, "marca": "LinenCo",
+    "etiquetas": ["nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=700&q=80"
+    ],
+    "stock": 32,
+    "caracteristicas": {
+      "Género": "Hombre",
+      "Tipo de manga": "Larga",
+      "Corte": "Slim fit",
+      "Composición": "100% Lino natural",
+      "Cuidado": "Lavado a 30°C",
+      "Ocasión": "Casual / Playa",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "S",   "stock": 5,  "precioExtra": 0},
+          {"valor": "M",   "stock": 10, "precioExtra": 0},
+          {"valor": "L",   "stock": 8,  "precioExtra": 0},
+          {"valor": "XL",  "stock": 6,  "precioExtra": 0},
+          {"valor": "XXL", "stock": 3,  "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Blanco",    "hex": "#f5f5f5"},
+          {"valor": "Azul cielo","hex": "#bfdbfe"},
+          {"valor": "Beige",     "hex": "#e8d5b7"}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 17,
+    "nombre": "Tacón Block Bicolor",
+    "descripcion": "Tacón cuadrado de 7cm con diseño bicolor muy de moda. Tira en el tobillo con hebilla metálica dorada.",
+    "categoriaId": 1, "subcategoria": "Tacones", "genero": "mujer",
+    "precio": 199000, "descuento": 0, "marca": "Glamour Step",
+    "etiquetas": ["nuevo", "mas-vendido"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1515347619252-60a4bf4fff4f?w=700&q=80",
+      "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=700&q=80"
+    ],
+    "stock": 18,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Tipo de tacón": "Block / Cuadrado",
+      "Altura del tacón": "7 cm",
+      "Diseño": "Bicolor",
+      "Cierre": "Tira con hebilla dorada",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "35", "stock": 3, "precioExtra": 0},
+          {"valor": "36", "stock": 5, "precioExtra": 0},
+          {"valor": "37", "stock": 4, "precioExtra": 0},
+          {"valor": "38", "stock": 4, "precioExtra": 0},
+          {"valor": "39", "stock": 2, "precioExtra": 0},
+          {"valor": "40", "stock": 0, "precioExtra": 0}
+        ]
+      },
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Negro/Dorado",    "hex": "#d4a843", "imagenIndex": 0},
+          {"valor": "Blanco/Plateado", "hex": "#9e9e9e", "imagenIndex": 1}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 18,
+    "nombre": "Chancleta Hombre Clásica",
+    "descripcion": "Chancleta cómoda en EVA ligero. Ideal para la casa, playa o piscina. Correa ergonómica antideslizante.",
+    "categoriaId": 5, "subcategoria": "Playa", "genero": "hombre",
+    "precio": 49000, "descuento": 0, "marca": "Calzacaribe",
+    "etiquetas": [],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1603487742131-4160ec999306?w=700&q=80"
+    ],
+    "stock": 48,
+    "caracteristicas": {
+      "Género": "Hombre",
+      "Material": "EVA ligero",
+      "Correa": "Ergonómica antideslizante",
+      "Uso": "Playa / Casa / Piscina",
+      "Tipo de suela": "Antideslizante",
+      "Temporada": "Primavera / Verano"
+    },
+    "variantes": [
+      {
+        "nombre": "Talla", "tipo": "talla", "requerido": true,
+        "opciones": [
+          {"valor": "38", "stock": 10, "precioExtra": 0},
+          {"valor": "39", "stock": 8,  "precioExtra": 0},
+          {"valor": "40", "stock": 9,  "precioExtra": 0},
+          {"valor": "41", "stock": 7,  "precioExtra": 0},
+          {"valor": "42", "stock": 6,  "precioExtra": 0},
+          {"valor": "43", "stock": 5,  "precioExtra": 0},
+          {"valor": "44", "stock": 3,  "precioExtra": 0}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 19,
+    "nombre": "Bolso Crossbody Cuero",
+    "descripcion": "Bolso cruzado en cuero genuino con cierre metálico dorado. Compartimento principal con bolsillo interno. Correa ajustable.",
+    "categoriaId": 6, "subcategoria": "Bolsos", "genero": "mujer",
+    "precio": 189000, "descuento": 0, "marca": "Caribe Fashion",
+    "etiquetas": ["nuevo"],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=700&q=80"
+    ],
+    "stock": 15,
+    "caracteristicas": {
+      "Género": "Mujer",
+      "Tipo": "Crossbody",
+      "Material": "Cuero genuino",
+      "Tipo de cierre": "Metálico dorado",
+      "Compartimentos": "1 principal + 1 interno",
+      "Correa": "Ajustable",
+      "Temporada": "Todo el año"
+    },
+    "variantes": [
+      {
+        "nombre": "Color", "tipo": "color", "requerido": true,
+        "opciones": [
+          {"valor": "Negro","hex": "#1a1a1a", "stock": 5},
+          {"valor": "Café", "hex": "#7c4a1a", "stock": 4},
+          {"valor": "Nude", "hex": "#c8a882", "stock": 4},
+          {"valor": "Vino", "hex": "#7c1a1a", "stock": 2}
+        ]
+      }
+    ],
+    "activo": true
+  },
+  {
+    "id": 20,
+    "nombre": "Cinturón Cuero Trenzado",
+    "descripcion": "Cinturón artesanal de cuero trenzado. Hebilla plateada de alta resistencia. Disponible en talla única ajustable.",
+    "categoriaId": 6, "subcategoria": "Cinturones", "genero": "unisex",
+    "precio": 59000, "descuento": 0, "marca": "Calzacaribe",
+    "etiquetas": [],
+    "imagenes": [
+      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=700&q=80"
+    ],
+    "stock": 30,
+    "caracteristicas": {
+      "Género": "Unisex",
+      "Material": "Cuero trenzado",
+      "Hebilla": "Plateada de alta resistencia",
+      "Talla": "Única ajustable",
+      "Largo": "110 cm ajustable",
+      "Ancho": "3 cm"
+    },
+    "variantes": [],
+    "activo": true
+  }
+]
