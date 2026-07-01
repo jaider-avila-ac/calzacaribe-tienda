@@ -2,15 +2,19 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, ShoppingCart, Bell, CircleUserRound, AlignJustify } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
+import { useAuth } from '../../context/AuthContext'
 import { getNotifications } from '../../services/notificationService'
 import CategoryDrawer from './CategoryDrawer'
 
 export default function Navbar() {
   const { count } = useCart()
+  const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const unreadCount = getNotifications().filter((n) => !n.leida).length
+  const firstName = user?.nombre?.trim() || user?.email?.split('@')[0] || ''
+  const fullName = [user?.nombre, user?.apellido].filter(Boolean).join(' ').trim()
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -83,10 +87,18 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Iniciar sesión */}
-            <Link to="/login" className="flex flex-col items-start justify-center h-full px-5 border-l border-white/10 hover:bg-white/5 transition-colors">
-              <span className="text-[11px] text-white/50 leading-none">Bienvenido</span>
-              <span className="text-sm font-bold text-white leading-snug">Iniciar sesión</span>
+            {/* Usuario */}
+            <Link
+              to={isAuthenticated ? '/configuracion' : '/login'}
+              className="flex flex-col items-start justify-center h-full px-5 border-l border-white/10 hover:bg-white/5 transition-colors min-w-[128px] max-w-[180px]"
+              title={isAuthenticated ? fullName || firstName : 'Iniciar sesion'}
+            >
+              <span className="text-[11px] text-white/50 leading-none">
+                {isAuthenticated ? 'Hola' : 'Bienvenido'}
+              </span>
+              <span className="text-sm font-bold text-white leading-snug truncate w-full">
+                {isAuthenticated ? firstName : 'Iniciar sesión'}
+              </span>
             </Link>
 
             {/* Carrito */}
@@ -125,7 +137,12 @@ export default function Navbar() {
 
             <div className="flex-1" />
 
-            <Link to="/login" className="w-9 h-9 flex items-center justify-center text-white/70 hover:text-white flex-shrink-0" aria-label="Iniciar sesión">
+            <Link
+              to={isAuthenticated ? '/configuracion' : '/login'}
+              className="w-9 h-9 flex items-center justify-center text-white/70 hover:text-white flex-shrink-0"
+              aria-label={isAuthenticated ? fullName || firstName : 'Iniciar sesión'}
+              title={isAuthenticated ? fullName || firstName : 'Iniciar sesión'}
+            >
               <CircleUserRound size={20} />
             </Link>
 

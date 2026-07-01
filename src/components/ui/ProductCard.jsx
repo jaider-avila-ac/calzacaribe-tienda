@@ -18,7 +18,7 @@ export default function ProductCard({ product }) {
       {/* Imagen */}
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
         <img
-          src={imagenes?.[0] || 'https://placehold.co/300x300/f5f5f5/999?text=Calzacaribe'}
+          src={imagenes?.[0]?.url ?? imagenes?.[0] ?? 'https://placehold.co/300x300/f5f5f5/999?text=Calzacaribe'}
           alt={nombre}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
@@ -65,9 +65,13 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="mt-2">
-          <p className="text-sm font-black text-black">{fmt(finalPrice)}</p>
-          {descuento > 0 && (
-            <p className="text-[10px] text-gray-400 line-through">{fmt(precio)}</p>
+          {descuento > 0 ? (
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <p className="text-sm font-black text-accent">{fmt(finalPrice)}</p>
+              <p className="text-[10px] text-gray-400 line-through">{fmt(precio)}</p>
+            </div>
+          ) : (
+            <p className="text-sm font-black text-black">{fmt(finalPrice)}</p>
           )}
         </div>
       </div>

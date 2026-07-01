@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ShoppingBag, Minus, Plus, Check, Truck, RefreshCw, Shield,
@@ -6,9 +6,12 @@ import {
 } from 'lucide-react'
 import { getProductById, getRelatedProducts } from '../../../services/productService'
 import { getCategoryById } from '../../../services/categoryService'
-import { getStock } from '../../../services/stockService'
+import { getStock, initStockFromProduct } from '../../../services/stockService'
+import { addReciente } from '../../../services/recentService'
+import { registrarEvento } from '../../../services/eventoService'
 import ProductCard from '../../../components/ui/ProductCard'
 import { useCart } from '../../../context/CartContext'
+import { useAuth } from '../../../context/AuthContext'
 import { fmt, discountedPrice } from '../../../utils/format'
 
 /* ── Helpers de variantes ─────────────────────────────── */
@@ -26,8 +29,6 @@ function calcPrecioExtra(product, seleccionadas) {
 }
 
 /* ── Características ──────────────────────────────────── */
-// Marca, Categoría y Subcategoría son siempre obligatorias (primeras).
-// El resto viene de product.caracteristicas (objeto libre por producto).
 
 function buildCaracteristicas(product, category) {
   const base = [
@@ -37,6 +38,14 @@ function buildCaracteristicas(product, category) {
   ]
   const extra = Object.entries(product.caracteristicas ?? {})
   return [...base, ...extra]
+}
+
+function stockRequiredNames(product) {
+  const combos = product?.stockVariantes ?? []
+  const names = []
+  if (combos.some((v) => v.talla)) names.push('Talla')
+  if (combos.some((v) => v.color)) names.push('Color')
+  return names
 }
 
 /* ── Reseñas simuladas ────────────────────────────────── */
@@ -63,62 +72,113 @@ function Stars({ count, size = 14 }) {
 ═══════════════════════════════════════════════════════════ */
 
 export default function ProductDetailPage() {
-  const { id }      = useParams()
-  const navigate    = useNavigate()
+  const { id }        = useParams()
+  const navigate      = useNavigate()
   const { addToCart } = useCart()
+  const { isAuthenticated } = useAuth()
 
-  const product = useMemo(() => getProductById(id), [id])
+  const [product,      setProduct]      = useState(null)
+  const [category,     setCategory]     = useState(null)
+  const [related,      setRelated]      = useState([])
+  const [loading,      setLoading]      = useState(true)
+  const [notFound,     setNotFound]     = useState(false)
 
   // Variantes seleccionadas: { "Talla": "38", "Color": "Negro", ... }
   const [seleccionadas, setSeleccionadas] = useState({})
-  const [cantidad,     setCantidad]   = useState(1)
-  const [activeMedia,  setActiveMedia] = useState(0)
-  const [added,        setAdded]      = useState(false)
-  const [error,        setError]      = useState('')
-  const [tab,          setTab]        = useState('caracteristicas')
+  const [cantidad,      setCantidad]      = useState(1)
+  const [activeMedia,   setActiveMedia]   = useState(0)
+  const [added,         setAdded]         = useState(false)
+  const [error,         setError]         = useState('')
+  const [tab,           setTab]           = useState('caracteristicas')
 
-  if (!product) return (
-    <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-      <p className="text-xl font-bold text-black">Producto no encontrado</p>
-      <button onClick={() => navigate('/')} className="btn-primary mt-5 mx-auto">Ir al inicio</button>
-    </div>
-  )
+  useEffect(() => {
+    setLoading(true)
+    setNotFound(false)
+    setProduct(null)
+    setSeleccionadas({})
+    setCantidad(1)
+    setActiveMedia(0)
 
-  const category        = getCategoryById(product.categoriaId)
+    getProductById(id)
+      .then(async (p) => {
+        setProduct(p)
+        initStockFromProduct(p)
+        addReciente(p)
+        registrarEvento('vista_producto', 'producto', p.id)
+        const [cat, rel] = await Promise.all([
+          getCategoryById(p.categoriaId),
+          getRelatedProducts(p.id, p.categoriaId, 4),
+        ])
+        setCategory(cat)
+        setRelated(rel)
+      })
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false))
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-20 text-center text-gray-400 text-sm">
+        Cargando producto…
+      </div>
+    )
+  }
+
+  if (notFound || !product) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+        <p className="text-xl font-bold text-black">Producto no encontrado</p>
+        <button onClick={() => navigate('/')} className="btn-primary mt-5 mx-auto">Ir al inicio</button>
+      </div>
+    )
+  }
+
   const finalBase       = discountedPrice(product.precio, product.descuento)
   const precioExtra     = calcPrecioExtra(product, seleccionadas)
   const finalPrice      = finalBase + precioExtra
-  // null = variante de stock no seleccionada aún; número = stock real en vivo
   const stock           = getStock(product.id, seleccionadas)
   const rating          = 4.0 + (product.id % 5) * 0.2
   const reviewCount     = 15 + (product.id % 30)
   const caracteristicas = buildCaracteristicas(product, category)
   const variantes       = product.variantes ?? []
-  const related         = getRelatedProducts(product.id, product.categoriaId, 4)
+  const requiredForStock = stockRequiredNames(product)
 
-  // Hasta 5 imágenes + 1 video opcional (el admin sube el video desde el panel;
-  // restricciones: máx 30 s de duración, máx 50 MB de peso)
-  const mediaItems = useMemo(() => {
-    const imgs = (product.imagenes ?? []).slice(0, 5).map((src) => ({ type: 'image', src }))
-    const video = product.video ? [{ type: 'video', src: product.video }] : []
+  const mediaItems = (() => {
+    const imgs  = (product.imagenes ?? []).slice(0, 5).map((img) => ({
+      type: 'image', src: img.url ?? img, varId: img.varId ?? null,
+    }))
+    const video = product.video ? [{ type: 'video', src: product.video, varId: null }] : []
     return [...imgs, ...video]
-  }, [product.imagenes, product.video])
+  })()
 
   /* Seleccionar una opción de variante */
   const handleVariante = (varianteName, valor, opcion) => {
     setSeleccionadas((prev) => ({ ...prev, [varianteName]: valor }))
     setError('')
     setCantidad(1)
-    if (opcion?.imagenIndex !== undefined && opcion.imagenIndex < mediaItems.length) {
-      setActiveMedia(opcion.imagenIndex)
+    // Si se seleccionó un color y alguna imagen tiene varId, cambiar a la primera imagen de ese color
+    if (varianteName === 'Color' && opcion?.varId) {
+      const idx = mediaItems.findIndex((m) => m.varId === opcion.varId)
+      if (idx !== -1) setActiveMedia(idx)
     }
   }
 
   /* Agregar al carrito */
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/producto/${id}` } })
+      return
+    }
+
     for (const v of variantes) {
       if (v.requerido && !seleccionadas[v.nombre]) {
         setError(`Selecciona ${v.nombre.toLowerCase()} para continuar`)
+        return
+      }
+    }
+    for (const name of requiredForStock) {
+      if (!seleccionadas[name]) {
+        setError(`Selecciona ${name.toLowerCase()} para continuar`)
         return
       }
     }
@@ -143,14 +203,12 @@ export default function ProductDetailPage() {
     `\nPrecio: ${fmt(finalPrice)}`
   )
 
-  /* ── Control de cantidad ── */
-  // true cuando todas las variantes requeridas tienen valor seleccionado
   const allRequiredSelected = variantes
     .filter((v) => v.requerido)
     .every((v) => Boolean(seleccionadas[v.nombre]))
+  const allStockOptionsSelected = requiredForStock.every((name) => Boolean(seleccionadas[name]))
 
-  // stock null → variante sin seleccionar → límite 1; stock número → límite real en vivo
-  const maxCantidad = allRequiredSelected ? Math.max(0, stock ?? 0) : 1
+  const maxCantidad = allRequiredSelected && allStockOptionsSelected ? Math.max(0, stock ?? 0) : 1
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 pb-16">
@@ -186,10 +244,7 @@ export default function ProductDetailPage() {
                   <video
                     key={mediaItems[activeMedia].src}
                     src={mediaItems[activeMedia].src}
-                    controls
-                    autoPlay
-                    loop
-                    playsInline
+                    controls autoPlay loop playsInline
                     className="w-full h-full object-cover"
                   />
                 )
@@ -257,19 +312,21 @@ export default function ProductDetailPage() {
 
           {/* Precio */}
           <div>
-            <div className="flex items-baseline gap-3">
+            {product.descuento > 0 ? (
+              <>
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <span className="text-3xl font-black text-accent">{fmt(finalPrice)}</span>
+                  <span className="text-xl text-gray-400 line-through">{fmt(product.precio + precioExtra)}</span>
+                  <span className="text-sm font-bold bg-accent text-white px-2 py-0.5 rounded-lg">
+                    -{product.descuento}% OFF
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Ahorras <span className="font-semibold text-green-600">{fmt(product.precio - finalBase)}</span>
+                </p>
+              </>
+            ) : (
               <span className="text-3xl font-black text-black">{fmt(finalPrice)}</span>
-              {product.descuento > 0 && (
-                <>
-                  <span className="text-lg text-gray-400 line-through">{fmt(product.precio + precioExtra)}</span>
-                  <span className="text-sm font-bold text-red-600">-{product.descuento}%</span>
-                </>
-              )}
-            </div>
-            {product.descuento > 0 && (
-              <p className="text-xs text-gray-500 mt-0.5">
-                Ahorras <span className="font-semibold text-green-600">{fmt(product.precio - finalBase)}</span>
-              </p>
             )}
             {precioExtra > 0 && (
               <p className="text-xs text-gray-400 mt-0.5">Incluye +{fmt(precioExtra)} por la opción seleccionada</p>
@@ -284,7 +341,7 @@ export default function ProductDetailPage() {
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-bold text-black">
                     {variante.nombre}{selVal ? `: ${selVal}` : ''}
-                    {variante.requerido && !selVal && (
+                    {(variante.requerido || requiredForStock.includes(variante.nombre)) && !selVal && (
                       <span className="ml-1 text-[11px] font-normal text-gray-400">(requerido)</span>
                     )}
                   </p>
@@ -298,8 +355,6 @@ export default function ProductDetailPage() {
                 <div className="flex flex-wrap gap-2">
                   {variante.opciones.map((opcion) => {
                     const isSelected  = selVal === opcion.valor
-                    // getStock returns null when we can't determine (multi-variant, talla not picked)
-                    // null !== 0, so null → not disabled (correct: can't judge without full selection)
                     const optionStock = getStock(product.id, { [variante.nombre]: opcion.valor })
                     const isOut       = optionStock === 0
 
@@ -315,7 +370,6 @@ export default function ProductDetailPage() {
                       )
                     }
 
-                    // talla / texto / numero
                     return (
                       <button
                         key={opcion.valor}
@@ -334,24 +388,12 @@ export default function ProductDetailPage() {
                   })}
                 </div>
 
-                {/* Indicador de stock en vivo — solo cuando la opción tiene stock propio y está seleccionada */}
-                {(variante.tipo === 'talla' || (variante.tipo === 'color' && variante.opciones[0]?.stock !== undefined)) && selVal && stock !== null && (
-                  <div className={`flex items-center gap-1.5 mt-2 text-xs font-medium ${
-                    stock === 0 ? 'text-red-500' : stock <= 3 ? 'text-amber-600' : 'text-green-600'
-                  }`}>
-                    {stock === 0
-                      ? <><XCircle size={13} /> Agotado</>
-                      : stock <= 3
-                      ? <><AlertCircle size={13} /> Solo {stock} disponibles</>
-                      : <><PackageCheck size={13} /> Disponible ({stock} unidades)</>}
-                  </div>
-                )}
               </div>
             )
           })}
 
-          {/* Stock global en vivo — solo si no hay variantes */}
-          {variantes.length === 0 && stock !== null && (
+          {/* Stock global — solo si no hay variantes */}
+          {stock !== null && (
             <div className={`flex items-center gap-1.5 text-sm font-medium ${
               stock === 0 ? 'text-red-500' : stock <= 5 ? 'text-amber-600' : 'text-green-600'
             }`}>
@@ -378,7 +420,7 @@ export default function ProductDetailPage() {
               </button>
               <span className="w-10 text-center text-sm font-bold">{cantidad}</span>
               <button onClick={() => setCantidad((q) => Math.min(maxCantidad, q + 1))}
-                disabled={!allRequiredSelected || cantidad >= maxCantidad}
+                disabled={!allRequiredSelected || !allStockOptionsSelected || cantidad >= maxCantidad}
                 className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-30">
                 <Plus size={16} />
               </button>
@@ -405,10 +447,10 @@ export default function ProductDetailPage() {
           </a>
 
           {/* Beneficios */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {[
               { Icon: Truck,     text: 'Envío a todo Colombia' },
-              { Icon: RefreshCw, text: 'Cambios en 30 días' },
+             
               { Icon: Shield,    text: 'Compra segura' },
             ].map(({ Icon, text }) => (
               <div key={text} className="flex flex-col items-center text-center gap-1.5 p-3 bg-gray-50 rounded-xl">
@@ -442,15 +484,8 @@ export default function ProductDetailPage() {
             <div className="max-w-2xl">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
                 {caracteristicas.map(([label, value], i) => (
-                  <div
-                    key={label}
-                    className={`flex flex-col py-3 border-b border-gray-100 ${
-                      i < 3 ? 'sm:col-span-1' : ''
-                    }`}
-                  >
-                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
-                      {label}
-                    </span>
+                  <div key={label} className={`flex flex-col py-3 border-b border-gray-100 ${i < 3 ? 'sm:col-span-1' : ''}`}>
+                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{label}</span>
                     <span className="text-sm font-semibold text-black">{value}</span>
                   </div>
                 ))}

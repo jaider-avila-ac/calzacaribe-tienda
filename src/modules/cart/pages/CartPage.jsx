@@ -1,9 +1,9 @@
-﻿import { useState } from 'react'
+﻿import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingBag, AlertCircle, MapPin, ChevronRight } from 'lucide-react'
+import { ShoppingBag, AlertCircle, MapPin, ChevronRight, Loader2 } from 'lucide-react'
 import { useCart } from '../../../context/CartContext'
 import { useOrders } from '../../../context/OrdersContext'
-import { getStock } from '../../../services/stockService'
+import { getStock, validateCart } from '../../../services/stockService'
 import { getDirecciones } from '../../../services/profileService'
 import { fmt } from '../../../utils/format'
 import CartItem from '../components/CartItem'
@@ -20,18 +20,46 @@ export default function CartPage() {
   const [selectedDirId, setSelectedDirId] = useState(() => getDirecciones()[0]?.id ?? null)
   const selectedDir = direcciones.find((d) => d.id === selectedDirId) ?? null
 
-  const cartValidated = cart.map((item) => {
-    const stockActual = getStock(item.productId, item.variantes) ?? 0
+  // Validación de stock en tiempo real contra la API
+  const [apiValidation, setApiValidation] = useState(null)
+  const [validating,    setValidating]    = useState(false)
+
+  useEffect(() => {
+    if (cart.length === 0) { setApiValidation([]); return }
+    setValidating(true)
+    validateCart(cart).then((results) => {
+      setApiValidation(results)  // null si la API falla → fallback a localStorage
+      setValidating(false)
+    })
+  }, [cart])
+
+  const cartValidated = useMemo(() => cart.map((item) => {
+    if (apiValidation === null) {
+      // Fallback a localStorage mientras carga o si la API falla
+      const s = getStock(item.productId, item.variantes) ?? 0
+      return { ...item, stockActual: s, isOutOfStock: s === 0, isOverStock: item.cantidad > s && s > 0 }
+    }
+    // Buscar resultado de la API para este ítem (API devuelve snake_case por Jackson)
+    const res = apiValidation.find((r) =>
+      r.product_id === item.productId &&
+      (r.talla ?? null) === (item.variantes?.['Talla'] ?? null) &&
+      (r.color ?? null) === (item.variantes?.['Color'] ?? null)
+    )
+    if (!res) {
+      // Ítem no encontrado en la validación (producto eliminado)
+      return { ...item, stockActual: 0, isOutOfStock: true, isOverStock: false }
+    }
+    const stock = res.stock_disponible
     return {
       ...item,
-      stockActual,
-      isOutOfStock: stockActual === 0,
-      isOverStock:  item.cantidad > stockActual && stockActual > 0,
+      stockActual:  stock,
+      isOutOfStock: !res.producto_activo || stock === 0,
+      isOverStock:  res.producto_activo && item.cantidad > stock && stock > 0,
     }
-  })
+  }), [cart, apiValidation])
 
   const hasCartIssues = cartValidated.some((i) => i.isOutOfStock || i.isOverStock)
-  const canCheckout   = !hasCartIssues && selectedDir !== null
+  const canCheckout   = !hasCartIssues && !validating && selectedDir !== null
 
   const shipping   = total >= FREE_SHIP ? 0 : SHIP_COST
   const grandTotal = total + shipping
@@ -197,13 +225,16 @@ export default function CartPage() {
           <button
             onClick={handleCheckout}
             disabled={!canCheckout}
-            className={`w-full rounded-xl py-3.5 font-bold text-sm transition-colors active:scale-95 ${
+            className={`w-full rounded-xl py-3.5 font-bold text-sm transition-colors active:scale-95 flex items-center justify-center gap-2 ${
               !canCheckout
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-black text-white hover:bg-gray-800'
             }`}
           >
-            Finalizar compra
+            {validating
+              ? <><Loader2 size={15} className="animate-spin" /> Verificando stock…</>
+              : 'Finalizar compra'
+            }
           </button>
           {!selectedDir && !hasCartIssues && (
             <p className="text-xs text-center text-amber-600">Selecciona una dirección de envío</p>

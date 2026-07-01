@@ -1,22 +1,33 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useCallback, useContext, useState } from 'react'
+import { tokenStore } from '../services/tokenStore'
 
 const AuthCtx = createContext(null)
 
-// TODO (backend): reemplazar por verificación real de token/cookie de sesión.
-// Por ahora la sesión vive solo en memoria: recargar la página cierra la sesión.
 export function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [user, setUser] = useState(() => tokenStore.getUser())
+  const [isAuthenticated, setIsAuthenticated] = useState(() => tokenStore.isLoggedIn())
 
-  const login  = useCallback(() => setIsAuthenticated(true),  [])
-  const logout = useCallback(() => setIsAuthenticated(false), [])
+  const login = useCallback((data) => {
+    if (data?.token) tokenStore.set(data.token, data)
+    setUser(tokenStore.getUser())
+    setIsAuthenticated(tokenStore.isLoggedIn())
+  }, [])
+
+  const logout = useCallback(() => {
+    tokenStore.clear()
+    setUser(null)
+    setIsAuthenticated(false)
+  }, [])
 
   return (
-    <AuthCtx.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthCtx.Provider value={{ isAuthenticated, user, login, logout }}>
       {children}
     </AuthCtx.Provider>
   )
 }
 
 export function useAuth() {
-  return useContext(AuthCtx)
+  const ctx = useContext(AuthCtx)
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
+  return ctx
 }

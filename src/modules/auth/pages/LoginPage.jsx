@@ -1,41 +1,11 @@
-﻿import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff } from 'lucide-react'
-import FormInput from '../../../components/ui/FormInput'
-import FormField from '../../../components/ui/FormField'
+import { useState, useCallback } from 'react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { authService } from '../../../services/authService'
+import { useAuth } from '../../../context/AuthContext'
 
-const IMG_URL = '/login/imagen-login-calzacaribe.webp'
+const GOOGLE_CLIENT_ID = '354623240504-8vulj2rf7j1pa4q8tu2f021nctsuovi8.apps.googleusercontent.com'
 
-/* ── Botón de opción (social / email) ─────────────────── */
-function OptionBtn({ onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full h-[58px] border border-gray-200 rounded-xl text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98]"
-    >
-      {children}
-    </button>
-  )
-}
-
-/* ── Texto de términos y política (reutilizado en los 3 paneles) ── */
-function TermsText() {
-  return (
-    <p className="text-center text-xs text-gray-400 leading-relaxed mt-6">
-      Al continuar, aceptas los{' '}
-      <a href="https://calzacaribe.netlify.app/terminos" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">
-        Términos de uso
-      </a>{' '}
-      y la{' '}
-      <a href="https://calzacaribe.netlify.app/privacidad" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">
-        Política de privacidad
-      </a>{' '}
-      de Calzacaribe.
-    </p>
-  )
-}
-
-/* ── Iconos de proveedores ───────────────────────────── */
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
@@ -47,182 +17,283 @@ function GoogleIcon() {
   )
 }
 
-/* ══════════════════════════════════════════════════════
-   PÁGINA
-══════════════════════════════════════════════════════ */
+function TermsText() {
+  return (
+    <p className="text-center text-xs text-gray-400 leading-relaxed">
+      Al continuar aceptas los{' '}
+      <a href="#" className="font-bold text-black hover:underline">Términos de uso</a>
+      {' '}y la{' '}
+      <a href="#" className="font-bold text-black hover:underline">Política de privacidad</a>.
+    </p>
+  )
+}
 
 export default function LoginPage() {
-  const navigate = useNavigate()
-  const [view, setView]         = useState('social') // 'social' | 'email' | 'register'
-  const [showPass, setShowPass] = useState(false)
+  const navigate  = useNavigate()
+  const location  = useLocation()
+  const from      = location.state?.from ?? '/'
+  const { login } = useAuth()
 
-  const handleLogin = () => navigate('/', { replace: true })
+  const [view,      setView]      = useState('social')
+  const [email,     setEmail]     = useState('')
+  const [password,  setPassword]  = useState('')
+  const [showPass,  setShowPass]  = useState(false)
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState('')
+  const [googleLoading, setGoogleLoading] = useState(false)
+
+  const success = useCallback((data) => {
+    login(data)
+    navigate(from, { replace: true })
+  }, [login, navigate, from])
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const data = await authService.login(email, password)
+      success(data)
+    } catch (err) {
+      if (err.status === 409 && err.data?.message === 'USE_GOOGLE') {
+        setError('Esta cuenta usa Google. Inicia sesión con Google.')
+      } else {
+        setError('Correo o contraseña incorrectos')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = useCallback(() => {
+    if (!window.google) {
+      setError('Google no disponible. Recarga la página.')
+      return
+    }
+    setGoogleLoading(true)
+    setError('')
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        try {
+          const data = await authService.googleLogin(response.credential)
+          success(data)
+        } catch (err) {
+          if (err.status === 409 && err.data?.message === 'USE_PASSWORD') {
+            setError('Esta cuenta usa contraseña. Usa el formulario de correo.')
+          } else {
+            setError('No se pudo iniciar sesión con Google. Intenta de nuevo.')
+          }
+          setGoogleLoading(false)
+        }
+      },
+      auto_select: false,
+      cancel_on_tap_outside: true,
+    })
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        setGoogleLoading(false)
+      }
+    })
+  }, [success])
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
-
-      {/* ── Lado imagen ───────────────────────────── */}
+      {/* Imagen lateral */}
       <div className="flex-1 hidden md:block overflow-hidden">
         <img
-          src={IMG_URL}
+          src="/login/imagen-login-calzacaribe.webp"
           alt="Calzacaribe"
           className="w-full h-full object-cover"
           draggable={false}
         />
       </div>
 
-      {/* ── Lado formulario ───────────────────────── */}
+      {/* Formulario */}
       <div className="w-full md:w-[470px] bg-white flex items-center justify-center overflow-y-auto px-10 py-12 border-l border-gray-100">
-        <div className="w-full max-w-[380px]">
+        <div className="w-full max-w-[380px] flex flex-col gap-6">
 
-          {/* Logo — invertido para fondo blanco */}
-          <div className="flex justify-center mb-14">
-            <img
-              src="/logos/imagotico-calzacaribe.svg"
-              alt="Calzacaribe"
-              className="h-14"
-              style={{ filter: 'invert(1)' }}
-            />
+          {/* Logo */}
+          <div className="flex justify-center">
+            <img src="/logos/imagotico-calzacaribe.svg" alt="Calzacaribe" className="h-14" style={{ filter: 'invert(1)' }} />
           </div>
 
-          {/* ══ Panel: Login social ══ */}
-          {view === 'social' && (
-            <div>
-              <h2 className="text-center text-2xl font-bold text-black mb-9">
-                Iniciar sesión
-              </h2>
-
-              <div className="space-y-3 mb-7">
-                <OptionBtn onClick={handleLogin}>
-                  <GoogleIcon /> Continuar con Google
-                </OptionBtn>
-                <OptionBtn onClick={() => setView('email')}>
-                  Continuar con correo
-                </OptionBtn>
-              </div>
-
-              <p className="text-center text-sm text-gray-500">
-                ¿No tienes cuenta?{' '}
-                <button
-                  onClick={() => setView('register')}
-                  className="font-bold text-black hover:underline"
-                >
-                  Regístrate
-                </button>
-              </p>
-
-              <TermsText />
+          {/* Error */}
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">
+              {error}
             </div>
           )}
 
-          {/* ══ Panel: Login email ══ */}
+          {/* Panel: social */}
+          {view === 'social' && (
+            <>
+              <h2 className="text-center text-2xl font-bold text-black">Iniciar sesión</h2>
+              <div className="space-y-3">
+                <button
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading}
+                  className="w-full h-[54px] border border-gray-200 rounded-xl text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60"
+                >
+                  {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+                  Continuar con Google
+                </button>
+                <button
+                  onClick={() => setView('email')}
+                  className="w-full h-[54px] border border-gray-200 rounded-xl text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center active:scale-[0.98]"
+                >
+                  Continuar con correo
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-500">
+                ¿No tienes cuenta?{' '}
+                <Link to="/registro" className="font-bold text-black hover:underline">Regístrate</Link>
+              </p>
+              <TermsText />
+            </>
+          )}
+
+          {/* Panel: email */}
           {view === 'email' && (
-            <div>
-              <h2 className="text-center text-2xl font-bold text-black mb-9">
-                Iniciar sesión
-              </h2>
-
-              <div className="space-y-5 mb-5">
-                <FormField label="Correo electrónico">
-                  <FormInput type="email" placeholder="correo@ejemplo.com" />
-                </FormField>
-
-                <FormField label="Contraseña">
+            <>
+              <h2 className="text-center text-2xl font-bold text-black">Iniciar sesión</h2>
+              <form onSubmit={handleEmailLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+                    Correo electrónico
+                  </label>
+                  <input
+                    type="email" required value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="correo@ejemplo.com"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                      Contraseña
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setView('forgot')}
+                      className="text-xs text-gray-500 hover:text-black transition-colors"
+                    >
+                      ¿Olvidaste tu contraseña?
+                    </button>
+                  </div>
                   <div className="relative">
-                    <FormInput
-                      type={showPass ? 'text' : 'password'}
+                    <input
+                      type={showPass ? 'text' : 'password'} required value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pr-12"
+                      className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPass((v) => !v)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black"
                     >
                       {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                </FormField>
-              </div>
-
-              <label className="flex items-center gap-3 mb-7 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-black flex-shrink-0" />
-                <span className="text-sm text-gray-500">Mantener sesión iniciada</span>
-              </label>
-
-              <button
-                onClick={handleLogin}
-                className="w-full h-[58px] bg-accent text-white text-xl font-black rounded-xl mb-7 hover:bg-accent-dark transition-colors active:scale-[0.98]"
-              >
-                Ingresar
-              </button>
-
-              <div className="text-center space-y-3 text-sm">
-                <p>
-                  <button className="font-bold text-black hover:underline">
-                    Olvidé mi contraseña
-                  </button>
-                </p>
+                </div>
+                <button
+                  type="submit" disabled={loading}
+                  className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {loading ? <><Loader2 size={16} className="animate-spin" />Ingresando…</> : 'Ingresar'}
+                </button>
+              </form>
+              <div className="text-center space-y-2 text-sm">
                 <p className="text-gray-500">
                   ¿No tienes cuenta?{' '}
-                  <button
-                    onClick={() => setView('register')}
-                    className="font-bold text-black hover:underline"
-                  >
-                    Regístrate
-                  </button>
+                  <Link to="/registro" className="font-bold text-black hover:underline">Regístrate</Link>
                 </p>
-                <p>
-                  <button
-                    onClick={() => setView('social')}
-                    className="text-gray-400 text-xs hover:text-black transition-colors"
-                  >
-                    ← Volver
-                  </button>
-                </p>
-              </div>
-
-              <TermsText />
-            </div>
-          )}
-
-          {/* ══ Panel: Registro ══ */}
-          {view === 'register' && (
-            <div>
-              <h2 className="text-center text-2xl font-bold text-black mb-9">
-                Crear cuenta
-              </h2>
-
-              <div className="space-y-3 mb-7">
-                <OptionBtn onClick={handleLogin}>
-                  <GoogleIcon /> Continuar con Google
-                </OptionBtn>
-                <OptionBtn onClick={handleLogin}>
-                  Continuar con correo
-                </OptionBtn>
-              </div>
-
-              <label className="flex items-center gap-3 mb-7 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 accent-black flex-shrink-0" />
-                <span className="text-sm text-gray-500">No deseo recibir promociones.</span>
-              </label>
-
-              <p className="text-center text-sm text-gray-500 mb-1">
-                ¿Ya tienes una cuenta?{' '}
-                <button
-                  onClick={() => setView('social')}
-                  className="font-bold text-black hover:underline"
-                >
-                  Inicia sesión
+                <button onClick={() => setView('social')} className="text-xs text-gray-400 hover:text-black transition-colors">
+                  ← Volver
                 </button>
-              </p>
-
+              </div>
               <TermsText />
-            </div>
+            </>
           )}
+
+          {/* Panel: forgot password */}
+          {view === 'forgot' && <ForgotInline onBack={() => setView('email')} />}
 
         </div>
       </div>
     </div>
+  )
+}
+
+function ForgotInline({ onBack }) {
+  const navigate  = useNavigate()
+  const [email,   setEmail]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sent,    setSent]    = useState(false)
+  const [error,   setError]   = useState('')
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await authService.forgotPassword(email)
+      setSent(true)
+    } catch {
+      setError('No se pudo enviar el código. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (sent) {
+    return (
+      <>
+        <h2 className="text-center text-2xl font-bold text-black">Código enviado</h2>
+        <p className="text-center text-sm text-gray-500">
+          Si el correo existe, recibirás un código en los próximos minutos.
+        </p>
+        <button
+          onClick={() => navigate('/restablecer')}
+          className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors"
+        >
+          Ingresar código
+        </button>
+        <button onClick={onBack} className="text-xs text-gray-400 hover:text-black transition-colors text-center">
+          ← Volver al login
+        </button>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <h2 className="text-center text-2xl font-bold text-black">Olvidé mi contraseña</h2>
+      <p className="text-center text-sm text-gray-500">
+        Te enviaremos un código de 6 dígitos para restablecerla.
+      </p>
+      {error && (
+        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">{error}</div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          type="email" required value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="tu@correo.com"
+          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+        />
+        <button
+          type="submit" disabled={loading}
+          className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {loading ? <><Loader2 size={16} className="animate-spin" />Enviando…</> : 'Enviar código'}
+        </button>
+      </form>
+      <button onClick={onBack} className="text-xs text-gray-400 hover:text-black transition-colors text-center">
+        ← Volver al login
+      </button>
+    </>
   )
 }

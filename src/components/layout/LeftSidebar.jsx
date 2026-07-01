@@ -1,23 +1,27 @@
-import { useState } from 'react'
-import { Link, useSearchParams, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight, X, SlidersHorizontal } from 'lucide-react'
 import { getActiveCategories } from '../../services/categoryService'
 
-const activeCategories = getActiveCategories()
-
 const GENEROS = [
-  { value: 'mujer', label: 'Mujer' },
+  { value: 'mujer',  label: 'Mujer' },
   { value: 'hombre', label: 'Hombre' },
-  { value: 'niños', label: 'Niños' },
+  { value: 'niños',  label: 'Niños' },
   { value: 'unisex', label: 'Unisex' },
 ]
 
 export default function LeftSidebar({ onClose }) {
   const location = useLocation()
+  const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
+  const [categories, setCategories] = useState([])
   const [expandedCat, setExpandedCat] = useState(
     params.get('categoria') ? Number(params.get('categoria')) : null
   )
+
+  useEffect(() => {
+    getActiveCategories().then(setCategories).catch(() => setCategories([]))
+  }, [])
 
   const activeCatId = params.get('categoria') ? Number(params.get('categoria')) : null
   const activeSub   = params.get('subcategoria') ?? ''
@@ -29,6 +33,16 @@ export default function LeftSidebar({ onClose }) {
     if (!value) next.delete(key)
     else next.set(key, value)
     setParams(next)
+    onClose?.()
+  }
+
+  const openCategory = (catId) => {
+    navigate(`/catalogo?categoria=${catId}`)
+    onClose?.()
+  }
+
+  const openSubcategory = (catId, sub) => {
+    navigate(`/catalogo?categoria=${catId}&subcategoria=${encodeURIComponent(sub)}`)
     onClose?.()
   }
 
@@ -63,8 +77,8 @@ export default function LeftSidebar({ onClose }) {
           <span>Todo el catálogo</span>
         </Link>
 
-        {activeCategories.map((cat) => {
-          const isActive  = activeCatId === cat.id
+        {categories.map((cat) => {
+          const isActive   = activeCatId === cat.id
           const isExpanded = expandedCat === cat.id
 
           return (
@@ -74,11 +88,9 @@ export default function LeftSidebar({ onClose }) {
                 className={`left-nav-item ${isActive ? 'left-nav-item-active' : ''}`}
                 onClick={() => {
                   toggleCat(cat.id)
-                  setFilter('categoria', isActive ? '' : cat.id)
-                  setFilter('subcategoria', '')
+                  if (!isActive) openCategory(cat.id)
                 }}
               >
-                <span className="text-base">{cat.emoji}</span>
                 <span className="flex-1">{cat.nombre}</span>
                 {cat.subcategorias.length > 0 && (
                   isExpanded
@@ -92,9 +104,8 @@ export default function LeftSidebar({ onClose }) {
                 <button
                   key={sub}
                   onClick={() => {
-                    setFilter('categoria', cat.id)
-                    setFilter('subcategoria', activeSub === sub ? '' : sub)
-                    onClose?.()
+                    if (activeSub === sub) openCategory(cat.id)
+                    else openSubcategory(cat.id, sub)
                   }}
                   className={`left-nav-sub w-full text-left ${activeSub === sub ? 'left-nav-sub-active' : ''}`}
                 >

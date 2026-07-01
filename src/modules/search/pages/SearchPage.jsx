@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, X, ChevronDown } from 'lucide-react'
 import { getProducts } from '../../../services/productService'
@@ -64,28 +64,33 @@ function MarcasPanel({ marcas: disponibles, seleccionadas, onToggle, onClear }) 
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [allProducts, setAllProducts]   = useState([])
 
-  const query         = searchParams.get('q') ?? ''
-  const sort          = searchParams.get('sort') ?? 'relevancia'
-  const marcasParam   = searchParams.get('marcas') ?? ''
-  const marcasSel     = useMemo(() => marcasParam.split(',').filter(Boolean), [marcasParam])
+  const query       = searchParams.get('q') ?? ''
+  const sort        = searchParams.get('sort') ?? 'relevancia'
+  const marcasParam = searchParams.get('marcas') ?? ''
+  const marcasSel   = useMemo(() => marcasParam.split(',').filter(Boolean), [marcasParam])
+
+  useEffect(() => {
+    getProducts().then((data) => setAllProducts(Array.isArray(data) ? data : [])).catch(() => {})
+  }, [])
 
   /* Todos los productos que coinciden con la búsqueda (antes de filtrar por marca) */
   const baseResults = useMemo(() => {
     if (!query.trim()) return []
     const q = query.toLowerCase()
-    return getProducts().filter((p) =>
+    return allProducts.filter((p) =>
       p.nombre.toLowerCase().includes(q)       ||
       p.descripcion?.toLowerCase().includes(q) ||
-      p.marca.toLowerCase().includes(q)        ||
-      p.subcategoria.toLowerCase().includes(q)
+      p.marca?.toLowerCase().includes(q)       ||
+      p.subcategoria?.toLowerCase().includes(q)
     )
-  }, [query])
+  }, [query, allProducts])
 
   /* Marcas disponibles con conteo */
   const marcasDisponibles = useMemo(() => {
     const counts = {}
-    baseResults.forEach((p) => { counts[p.marca] = (counts[p.marca] ?? 0) + 1 })
+    baseResults.forEach((p) => { if (p.marca) counts[p.marca] = (counts[p.marca] ?? 0) + 1 })
     return Object.entries(counts)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([nombre, count]) => ({ nombre, count }))
@@ -97,10 +102,10 @@ export default function SearchPage() {
       ? baseResults.filter((p) => marcasSel.includes(p.marca))
       : baseResults
 
-    if (sort === 'precio-asc')  list = [...list].sort((a, b) => a.precio - b.precio)
-    else if (sort === 'precio-desc') list = [...list].sort((a, b) => b.precio - a.precio)
-    else if (sort === 'nombre')      list = [...list].sort((a, b) => a.nombre.localeCompare(b.nombre))
-    else if (sort === 'descuento')   list = [...list].sort((a, b) => b.descuento - a.descuento)
+    if (sort === 'precio-asc')        list = [...list].sort((a, b) => a.precio - b.precio)
+    else if (sort === 'precio-desc')  list = [...list].sort((a, b) => b.precio - a.precio)
+    else if (sort === 'nombre')       list = [...list].sort((a, b) => a.nombre.localeCompare(b.nombre))
+    else if (sort === 'descuento')    list = [...list].sort((a, b) => b.descuento - a.descuento)
 
     return list
   }, [baseResults, marcasSel, sort])

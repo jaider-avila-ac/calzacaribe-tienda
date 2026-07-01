@@ -1,14 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { X, ChevronRight, ArrowRight, Home, ShoppingBag, Settings, Package, Bell } from 'lucide-react'
 import { getActiveCategories } from '../../services/categoryService'
 
-const activeCategories = getActiveCategories()
-
 const NAV_TOP = [
-  { label: 'Inicio',           to: '/',                Icon: Home    },
-  { label: 'Mis compras',      to: '/mis-compras',     Icon: Package },
-  { label: 'Notificaciones',   to: '/notificaciones',  Icon: Bell    },
+  { label: 'Inicio',         to: '/',               Icon: Home    },
+  { label: 'Mis compras',    to: '/mis-compras',    Icon: Package },
+  { label: 'Notificaciones', to: '/notificaciones', Icon: Bell    },
 ]
 
 const NAV_BOTTOM = [
@@ -16,19 +14,24 @@ const NAV_BOTTOM = [
 ]
 
 export default function CategoryDrawer({ isOpen, onClose }) {
-  const [hoveredCat, setHoveredCat] = useState(activeCategories[0]?.id ?? null)
+  const [categories,  setCategories]  = useState([])
+  const [hoveredCat,  setHoveredCat]  = useState(null)
+
+  useEffect(() => {
+    getActiveCategories().then((data) => {
+      setCategories(data)
+      setHoveredCat(data[0]?.id ?? null)
+    }).catch(() => {})
+  }, [])
 
   if (!isOpen) return null
 
-  const activeCategory = activeCategories.find((c) => c.id === hoveredCat)
+  const activeCategory = categories.find((c) => c.id === hoveredCat)
 
   return (
     <>
       {/* Fondo oscuro */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40 fade-in"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-40 fade-in" onClick={onClose} />
 
       {/* Drawer */}
       <div className="fixed left-0 top-[100px] lg:top-[72px] bottom-0 z-50 flex drawer-in">
@@ -47,7 +50,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
             </button>
           </div>
 
-          {/* Navegación superior: Inicio, Mis compras */}
+          {/* Navegación superior */}
           <div className="px-2 pt-2 pb-1">
             {NAV_TOP.map(({ label, to, Icon }) => (
               <Link
@@ -62,7 +65,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
             ))}
           </div>
 
-          {/* Divisor + label categorías */}
+          {/* Label categorías */}
           <div className="px-4 pt-3 pb-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
               Categorías
@@ -71,7 +74,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
 
           {/* Lista de categorías */}
           <ul className="flex-1 overflow-y-auto px-2 pb-1">
-            {activeCategories.map((cat) => (
+            {categories.map((cat) => (
               <li key={cat.id}>
                 <div
                   onMouseEnter={() => setHoveredCat(cat.id)}
@@ -101,7 +104,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
             ))}
           </ul>
 
-          {/* Divisor + Configuración al fondo */}
+          {/* Configuración al fondo */}
           <div className="border-t border-gray-100 px-2 py-2">
             {NAV_BOTTOM.map(({ label, to, Icon }) => (
               <Link

@@ -2,8 +2,13 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { CartProvider } from './context/CartContext'
 import { OrdersProvider } from './context/OrdersContext'
+import { AuthProvider } from './context/AuthContext'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 import StoreLayout from './components/layout/StoreLayout'
 import LoginPage from './modules/auth/pages/LoginPage'
+import RegisterPage from './modules/auth/pages/RegisterPage'
+import VerifyPage from './modules/auth/pages/VerifyPage'
+import ResetPasswordPage from './modules/auth/pages/ResetPasswordPage'
 import HomePage from './modules/home/pages/HomePage'
 import CatalogPage from './modules/catalog/pages/CatalogPage'
 import ProductDetailPage from './modules/product/pages/ProductDetailPage'
@@ -21,25 +26,35 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <CartProvider>
-      <OrdersProvider>
+    <AuthProvider>
+      <CartProvider>
+        <OrdersProvider>
         <BrowserRouter>
           <ScrollToTop />
           <Routes>
+            {/* Auth — fuera del layout principal */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/registro" element={<RegisterPage />} />
+            <Route path="/verificar" element={<VerifyPage />} />
+            <Route path="/restablecer" element={<ResetPasswordPage />} />
+
             <Route path="/" element={<StoreLayout />}>
               <Route index element={<HomePage />} />
               <Route path="catalogo" element={<CatalogPage />} />
               <Route path="producto/:id" element={<ProductDetailPage />} />
-              <Route path="carrito" element={<CartPage />} />
-              <Route path="mis-compras" element={<MisComprasPage />} />
-              <Route path="configuracion" element={<ConfiguracionPage />} />
-              <Route path="notificaciones" element={<NotificationsPage />} />
               <Route path="busqueda" element={<SearchPage />} />
+
+              <Route element={<ProtectedRoute />}>
+                <Route path="carrito" element={<CartPage />} />
+                <Route path="mis-compras" element={<MisComprasPage />} />
+                <Route path="configuracion" element={<ConfiguracionPage />} />
+                <Route path="notificaciones" element={<NotificationsPage />} />
+              </Route>
             </Route>
           </Routes>
         </BrowserRouter>
-      </OrdersProvider>
-    </CartProvider>
+        </OrdersProvider>
+      </CartProvider>
+    </AuthProvider>
   )
 }

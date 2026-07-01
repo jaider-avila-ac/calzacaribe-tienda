@@ -1,12 +1,22 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import ProductCard from '../../../components/ui/ProductCard'
-import productsData from '../../../data/products.json'
+import { getProducts } from '../../../services/productService'
 
 export default function FeaturedProducts({ title = 'Más Vendidos', filter = 'mas-vendido', to = '/catalogo', limit = 4 }) {
-  const products = productsData
-    .filter((p) => p.activo && (filter === 'all' ? true : p.etiquetas.includes(filter)))
-    .slice(0, limit)
+  const [products, setProducts] = useState([])
+
+  useEffect(() => {
+    getProducts()
+      .then((data) => {
+        const filtered = data
+          .filter((p) => p.activo && (filter === 'all' ? true : p.etiquetas.includes(filter)))
+          .slice(0, limit)
+        setProducts(filtered)
+      })
+      .catch(() => setProducts([]))
+  }, [filter, limit])
 
   if (products.length === 0) return null
 
