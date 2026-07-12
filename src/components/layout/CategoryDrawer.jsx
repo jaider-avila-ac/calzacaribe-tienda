@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { X, ChevronRight, ArrowRight, Home, ShoppingBag, Settings, Package, Bell } from 'lucide-react'
+import { X, ChevronRight, ArrowRight, Home, ShoppingBag, Settings, Package, Bell, Heart } from 'lucide-react'
 import { getActiveCategories } from '../../services/categoryService'
 
 const NAV_TOP = [
-  { label: 'Inicio',         to: '/',               Icon: Home    },
-  { label: 'Mis compras',    to: '/mis-compras',    Icon: Package },
-  { label: 'Notificaciones', to: '/notificaciones', Icon: Bell    },
+  { label: 'Inicio', to: '/', Icon: Home },
+  { label: 'Mis compras', to: '/mis-compras', Icon: Package },
+  { label: 'Favoritos', to: '/favoritos', Icon: Heart },
+  { label: 'Notificaciones', to: '/notificaciones', Icon: Bell },
 ]
 
 const NAV_BOTTOM = [
@@ -14,8 +15,8 @@ const NAV_BOTTOM = [
 ]
 
 export default function CategoryDrawer({ isOpen, onClose }) {
-  const [categories,  setCategories]  = useState([])
-  const [hoveredCat,  setHoveredCat]  = useState(null)
+  const [categories, setCategories] = useState([])
+  const [hoveredCat, setHoveredCat] = useState(null)
 
   useEffect(() => {
     getActiveCategories().then((data) => {
@@ -44,7 +45,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
             <span className="text-sm font-black text-black">Menú</span>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-black"
+              className="p-1 hover:bg-gray-100 transition-colors text-gray-500 hover:text-black"
             >
               <X size={16} />
             </button>
@@ -57,7 +58,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
                 key={to}
                 to={to}
                 onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
               >
                 <Icon size={16} className="text-gray-400 flex-shrink-0" />
                 {label}
@@ -78,7 +79,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
               <li key={cat.id}>
                 <div
                   onMouseEnter={() => setHoveredCat(cat.id)}
-                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
+                  className={`flex items-center justify-between px-3 py-2.5 cursor-pointer transition-colors ${
                     hoveredCat === cat.id
                       ? 'bg-gray-50 font-semibold text-black'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-black'
@@ -111,7 +112,7 @@ export default function CategoryDrawer({ isOpen, onClose }) {
                 key={to}
                 to={to}
                 onClick={onClose}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-black transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-black transition-colors"
               >
                 <Icon size={16} className="text-gray-400 flex-shrink-0" />
                 {label}
@@ -137,9 +138,9 @@ export default function CategoryDrawer({ isOpen, onClose }) {
                   <Link
                     to={`/catalogo?categoria=${activeCategory.id}&subcategoria=${encodeURIComponent(sub)}`}
                     onClick={onClose}
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                   >
-                    <span className="w-1 h-1 rounded-full bg-gray-300 flex-shrink-0" />
+                    <span className="w-1 h-1 bg-gray-300 flex-shrink-0" />
                     {sub}
                   </Link>
                 </li>

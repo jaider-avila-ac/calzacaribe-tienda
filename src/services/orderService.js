@@ -22,7 +22,7 @@ export function createOrder({ items, subtotal, envio, total, direccion }) {
   const order = {
     id:       'ORD-' + Date.now().toString(36).toUpperCase().slice(-6),
     fecha:    new Date().toISOString(),
-    estado:   'pendiente',
+    estado:   'pagado',
     items,
     subtotal,
     envio,

@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Truck, RefreshCw, Shield, Flame, Sparkles, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowRight, Truck, RefreshCw, Shield, Flame, Sparkles, Clock, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import ProductCard from '../../../components/ui/ProductCard'
-import { getProducts } from '../../../services/productService'
+import { getProducts, subscribeProducts } from '../../../services/productService'
 import { getActiveCategories } from '../../../services/categoryService'
-import { getRecientes, getCategoriaFavorita } from '../../../services/recentService'
+import { getRecientes, getCategoriaFavorita, pruneRecientes } from '../../../services/recentService'
 import { getRecientesDB, getCategoriaFavoritaDB } from '../../../services/eventoService'
 import { tokenStore } from '../../../services/tokenStore'
 import { getBanners } from '../../../services/bannerService'
+import { useBackendOnline } from '../../../hooks/useBackendOnline'
 import CollectionsGrid from '../components/CollectionsGrid'
 
 function BannerHero({ banners }) {
@@ -31,7 +32,7 @@ function BannerHero({ banners }) {
 
   if (slides.length === 0) return null
 
-  const go   = (idx) => { setCurrent(idx); startTimer() }
+  const go = (idx) => { setCurrent(idx); startTimer() }
   const prev = () => go((current - 1 + slides.length) % slides.length)
   const next = () => go((current + 1) % slides.length)
 
@@ -67,18 +68,18 @@ function BannerHero({ banners }) {
       {slides.length > 1 && (
         <>
           <button onClick={prev} aria-label="Anterior"
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/65 backdrop-blur-sm flex items-center justify-center text-white transition-colors">
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 bg-black/40 hover:bg-black/65 backdrop-blur-sm flex items-center justify-center text-white transition-colors">
             <ChevronLeft size={20} />
           </button>
           <button onClick={next} aria-label="Siguiente"
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/40 hover:bg-black/65 backdrop-blur-sm flex items-center justify-center text-white transition-colors">
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 sm:w-10 sm:h-10 bg-black/40 hover:bg-black/65 backdrop-blur-sm flex items-center justify-center text-white transition-colors">
             <ChevronRight size={20} />
           </button>
 
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
             {slides.map((_, i) => (
               <button key={i} onClick={() => go(i)} aria-label={`Ir al banner ${i + 1}`}
-                className={`rounded-full transition-all duration-300 ${
+                className={`transition-all duration-300 ${
                   i === current ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50 hover:bg-white/80'
                 }`} />
             ))}
@@ -92,34 +93,56 @@ function BannerHero({ banners }) {
 /* ══════════════════════════════════════════════════════════ */
 
 export default function HomePage() {
-  const [products,     setProducts]     = useState([])
-  const [categories,   setCategories]   = useState([])
-  const [recientes,    setRecientes]    = useState([])
-  const [catFavorita,  setCatFavorita]  = useState(null)
+  const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
+  const [recientes, setRecientes] = useState([])
+  const [catFavorita, setCatFavorita] = useState(null)
   const [heroBanners, setHeroBanners] = useState([])
+  const [heroLoading, setHeroLoading] = useState(true)
+  const backendOnline = useBackendOnline()
 
   useEffect(() => {
-    getProducts().then((data) => setProducts(Array.isArray(data) ? data : [])).catch(() => {})
+    // Si el refresco en segundo plano trae datos nuevos, se reflejan solos sin recargar.
+    const unsubscribe = subscribeProducts((data) => setProducts(Array.isArray(data) ? data : []))
+
+    getProducts().then((data) => {
+      const list = Array.isArray(data) ? data : []
+      setProducts(list)
+
+      // Los recientes guardados en localStorage no se revalidan al guardarse — un producto
+      // borrado o desactivado después de verse se queda "fantasma" hasta que se filtra aquí.
+      const validIds = new Set(list.filter((p) => p.activo).map((p) => p.id))
+
+      if (tokenStore.isLoggedIn()) {
+        getRecientesDB(8).then((dbData) => {
+          if (Array.isArray(dbData) && dbData.length > 0) setRecientes(dbData)
+          else setRecientes(pruneRecientes(validIds).slice(0, 8))
+        })
+      } else {
+        setRecientes(pruneRecientes(validIds).slice(0, 8))
+      }
+    }).catch(() => {})
+
     getActiveCategories().then(setCategories).catch(() => {})
-    getBanners('hero').then(setHeroBanners).catch(() => {})
+    getBanners('hero').then(setHeroBanners).catch(() => {}).finally(() => setHeroLoading(false))
 
     if (tokenStore.isLoggedIn()) {
-      getRecientesDB(8).then((data) => {
-        if (Array.isArray(data) && data.length > 0) setRecientes(data)
-        else setRecientes(getRecientes(8))
-      })
       getCategoriaFavoritaDB().then((catFav) => {
         setCatFavorita(catFav || getCategoriaFavorita())
       })
     } else {
-      setRecientes(getRecientes(8))
       setCatFavorita(getCategoriaFavorita())
     }
+
+    return unsubscribe
   }, [])
 
-  const activeProducts = products.filter((p) => p.activo)
-  const vendidos       = activeProducts.filter((p) => p.etiquetas.includes('mas-vendido')).slice(0, 4)
-  const nuevos         = activeProducts.filter((p) => p.etiquetas.includes('nuevo')).slice(0, 4)
+  // Si el backend no responde, no hay forma de confirmar que el caché local sigue vigente
+  // (productos pudieron cambiar de precio/stock/estado) — mejor no mostrar nada a mostrar
+  // datos posiblemente desactualizados como si fueran en vivo.
+  const activeProducts = backendOnline ? products.filter((p) => p.activo) : []
+  const vendidos = activeProducts.filter((p) => p.etiquetas.includes('mas-vendido')).slice(0, 4)
+  const nuevos = activeProducts.filter((p) => p.etiquetas.includes('nuevo')).slice(0, 4)
 
   // Categoría favorita al frente; el resto en su orden original
   const sortedCategories = useMemo(() => {
@@ -131,6 +154,14 @@ export default function HomePage() {
     })
   }, [categories, catFavorita])
 
+  if (heroLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 min-h-[70vh] text-gray-400 text-sm">
+        <Loader2 size={28} className="animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="pb-16">
 
@@ -139,6 +170,14 @@ export default function HomePage() {
 
       {/* ── Colecciones ── */}
       <CollectionsGrid />
+
+      {!backendOnline && (
+        <div className="max-w-7xl mx-auto px-4 pt-10">
+          <p className="text-sm text-gray-500 text-center bg-gray-50 py-4">
+            No pudimos conectar con el servidor. Verifica tu conexión e intenta de nuevo.
+          </p>
+        </div>
+      )}
 
       {/* ── Más vendidos ── */}
       {vendidos.length > 0 && (
@@ -177,7 +216,7 @@ export default function HomePage() {
                 {cat.subcategorias.map((sub) => (
                   <Link key={sub}
                     to={`/catalogo?categoria=${cat.id}&subcategoria=${encodeURIComponent(sub)}`}
-                    className="flex-shrink-0 text-[11px] font-medium text-gray-500 hover:text-black border border-gray-200 hover:border-black px-2.5 py-1 rounded-full transition-colors">
+                    className="flex-shrink-0 text-[11px] font-medium text-gray-500 hover:text-black border border-gray-200 hover:border-black px-2.5 py-1 transition-colors">
                     {sub}
                   </Link>
                 ))}
@@ -227,12 +266,12 @@ export default function HomePage() {
 
       {/* ── CTA WhatsApp ── */}
       <div className="max-w-7xl mx-auto px-4 pt-10">
-        <div className="bg-accent rounded-2xl p-6 text-center">
+        <div className="bg-accent p-6 text-center">
           <h3 className="text-lg font-black text-white">¿Dudas sobre tallas o colores?</h3>
           <p className="text-sm text-white/70 mt-1 mb-4">Escríbenos y te asesoramos al instante</p>
           <a href="https://wa.me/573015097013?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20sus%20productos"
             target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-black text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-800 transition-colors">
+            className="inline-flex items-center gap-2 bg-black text-white px-5 py-2.5 font-bold text-sm hover:bg-gray-800 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>

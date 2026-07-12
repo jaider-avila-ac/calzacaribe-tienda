@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ShoppingBag, Minus, Plus, Check, Truck, RefreshCw, Shield,
-  Star, ChevronRight, AlertCircle, PackageCheck, XCircle, Play,
+  Star, ChevronRight, AlertCircle, PackageCheck, XCircle, Play, Heart, Loader2,
 } from 'lucide-react'
 import { getProductById, getRelatedProducts } from '../../../services/productService'
+import { getResenas, getEstadoResena, crearResena } from '../../../services/reviewService'
 import { getCategoryById } from '../../../services/categoryService'
 import { getStock, initStockFromProduct } from '../../../services/stockService'
 import { addReciente } from '../../../services/recentService'
@@ -12,7 +13,9 @@ import { registrarEvento } from '../../../services/eventoService'
 import ProductCard from '../../../components/ui/ProductCard'
 import { useCart } from '../../../context/CartContext'
 import { useAuth } from '../../../context/AuthContext'
+import { useWishlist } from '../../../context/WishlistContext'
 import { fmt, discountedPrice } from '../../../utils/format'
+import { absoluteUrl, removeJsonLd, setCanonical, setMetaTag, siteOrigin, upsertJsonLd } from '../../../utils/seo'
 
 /* ── Helpers de variantes ─────────────────────────────── */
 
@@ -32,8 +35,8 @@ function calcPrecioExtra(product, seleccionadas) {
 
 function buildCaracteristicas(product, category) {
   const base = [
-    ['Marca',        product.marca],
-    ['Categoría',    category?.nombre ?? '—'],
+    ['Marca', product.marca],
+    ['Categoría', category?.nombre ?? '—'],
     ['Subcategoría', product.subcategoria],
   ]
   const extra = Object.entries(product.caracteristicas ?? {})
@@ -48,13 +51,50 @@ function stockRequiredNames(product) {
   return names
 }
 
-/* ── Reseñas simuladas ────────────────────────────────── */
+function plainText(value, fallback = '') {
+  return String(value || fallback).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
-const MOCK_REVIEWS = [
-  { id: 1, autor: 'María G.',  stars: 5, texto: 'Calidad excelente, llegaron en perfectas condiciones. Las tallas son exactas.', fecha: 'hace 2 semanas' },
-  { id: 2, autor: 'Carlos M.', stars: 4, texto: 'Muy cómodos. El material es de buena calidad. Los recomiendo.', fecha: 'hace 1 mes' },
-  { id: 3, autor: 'Laura V.',  stars: 5, texto: 'Hermosos, exactamente como en la foto. Muy satisfecha con la compra.', fecha: 'hace 1 mes' },
-]
+function productAvailability(stock) {
+  return Number(stock ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
+}
+
+function productSeoData(product, category) {
+  const origin = siteOrigin()
+  const url = `${origin}/producto/${product.id}`
+  const image = (product.imagenes ?? []).map((img) => absoluteUrl(img.url ?? img)).filter(Boolean)
+  const basePrice = discountedPrice(product.precio, product.descuento)
+  const totalStock = (product.stockVariantes ?? []).reduce((sum, item) => sum + Number(item.stock ?? 0), 0)
+  const description = plainText(product.descripcion, `${product.nombre} en Calzacaribe.`)
+
+  return {
+    title: `${product.nombre} | Calzacaribe`,
+    description,
+    canonical: url,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.nombre,
+      description,
+      image,
+      sku: String(product.id),
+      mpn: String(product.id),
+      brand: product.marca ? { '@type': 'Brand', name: product.marca } : undefined,
+      category: category?.nombre ?? product.subcategoria,
+      url,
+      offers: {
+        '@type': 'Offer',
+        url,
+        priceCurrency: 'COP',
+        price: String(basePrice),
+        availability: productAvailability(totalStock),
+        itemCondition: 'https://schema.org/NewCondition',
+      },
+    },
+  }
+}
+
+/* ── Reseñas ───────────────────────────────────────────── */
 
 function Stars({ count, size = 14 }) {
   return (
@@ -67,37 +107,82 @@ function Stars({ count, size = 14 }) {
   )
 }
 
+// Selector de estrellas clickeable — el rating es obligatorio para poder enviar la reseña
+function StarsInput({ value, onChange, size = 22 }) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => onChange(n)}
+          aria-label={`${n} estrella${n > 1 ? 's' : ''}`}
+          className="p-0.5 hover:scale-110 transition-transform"
+        >
+          <Star size={size}
+            className={n <= value ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function formatFecha(iso) {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return ''
+  }
+}
+
 /* ══════════════════════════════════════════════════════════
    PÁGINA PRINCIPAL
 ═══════════════════════════════════════════════════════════ */
 
 export default function ProductDetailPage() {
-  const { id }        = useParams()
-  const navigate      = useNavigate()
+  const { id } = useParams()
+  const navigate = useNavigate()
   const { addToCart } = useCart()
   const { isAuthenticated } = useAuth()
+  const { isFavorito, toggle: toggleFavorito } = useWishlist()
 
-  const [product,      setProduct]      = useState(null)
-  const [category,     setCategory]     = useState(null)
-  const [related,      setRelated]      = useState([])
-  const [loading,      setLoading]      = useState(true)
-  const [notFound,     setNotFound]     = useState(false)
+  const [product, setProduct] = useState(null)
+  const [category, setCategory] = useState(null)
+  const [related, setRelated] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+  const [serviceDown, setServiceDown] = useState(false)
 
   // Variantes seleccionadas: { "Talla": "38", "Color": "Negro", ... }
   const [seleccionadas, setSeleccionadas] = useState({})
-  const [cantidad,      setCantidad]      = useState(1)
-  const [activeMedia,   setActiveMedia]   = useState(0)
-  const [added,         setAdded]         = useState(false)
-  const [error,         setError]         = useState('')
-  const [tab,           setTab]           = useState('caracteristicas')
+  const [cantidad, setCantidad] = useState(1)
+  const [activeMedia, setActiveMedia] = useState(0)
+  const [added, setAdded] = useState(false)
+  const [error, setError] = useState('')
+  const [tab, setTab] = useState('caracteristicas')
+
+  // Reseñas: resumen+lista (públicos) y estado del usuario autenticado (compró / ya reseñó)
+  const [resenas, setResenas] = useState({ ratingPromedio: null, totalResenas: 0, items: [] })
+  const [estadoResena, setEstadoResena] = useState({ compro: false, yaReseno: false })
+  const [formCalificacion, setFormCalificacion] = useState(0)
+  const [formComentario, setFormComentario] = useState('')
+  const [enviandoResena, setEnviandoResena] = useState(false)
+  const [errorResena, setErrorResena] = useState('')
 
   useEffect(() => {
     setLoading(true)
     setNotFound(false)
+    setServiceDown(false)
     setProduct(null)
     setSeleccionadas({})
     setCantidad(1)
     setActiveMedia(0)
+    setResenas({ ratingPromedio: null, totalResenas: 0, items: [] })
+    setEstadoResena({ compro: false, yaReseno: false })
+    setFormCalificacion(0)
+    setFormComentario('')
+    setErrorResena('')
 
     getProductById(id)
       .then(async (p) => {
@@ -105,21 +190,86 @@ export default function ProductDetailPage() {
         initStockFromProduct(p)
         addReciente(p)
         registrarEvento('vista_producto', 'producto', p.id)
-        const [cat, rel] = await Promise.all([
+        const [cat, rel, res] = await Promise.all([
           getCategoryById(p.categoriaId),
           getRelatedProducts(p.id, p.categoriaId, 4),
+          getResenas(p.id),
         ])
         setCategory(cat)
         setRelated(rel)
+        setResenas(res)
       })
-      .catch(() => setNotFound(true))
+      .catch((err) => {
+        if (err?.offline) setServiceDown(true)
+        else setNotFound(true)
+      })
       .finally(() => setLoading(false))
   }, [id])
 
+  useEffect(() => {
+    if (!product || !isAuthenticated) {
+      setEstadoResena({ compro: false, yaReseno: false })
+      return
+    }
+    getEstadoResena(product.id).then(setEstadoResena).catch(() => {})
+  }, [product, isAuthenticated])
+
+  const handleEnviarResena = async () => {
+    if (!formCalificacion) {
+      setErrorResena('Selecciona una calificación de estrellas')
+      return
+    }
+    setEnviandoResena(true)
+    setErrorResena('')
+    try {
+      const nueva = await crearResena(product.id, { calificacion: formCalificacion, cuerpo: formComentario })
+      setResenas((prev) => {
+        const items = [nueva, ...prev.items]
+        const promedio = Math.round((items.reduce((s, r) => s + r.calificacion, 0) / items.length) * 10) / 10
+        return { ratingPromedio: promedio, totalResenas: items.length, items }
+      })
+      setEstadoResena((prev) => ({ ...prev, yaReseno: true }))
+      setFormCalificacion(0)
+      setFormComentario('')
+    } catch {
+      setErrorResena('No se pudo enviar tu reseña. Intenta de nuevo.')
+    } finally {
+      setEnviandoResena(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!product) return undefined
+
+    const seo = productSeoData(product, category)
+    document.title = seo.title
+    setCanonical(seo.canonical)
+    setMetaTag('description', seo.description)
+    setMetaTag('og:title', seo.title, 'property')
+    setMetaTag('og:description', seo.description, 'property')
+    setMetaTag('og:type', 'product', 'property')
+    setMetaTag('og:url', seo.canonical, 'property')
+    if (seo.jsonLd.image?.[0]) setMetaTag('og:image', seo.jsonLd.image[0], 'property')
+    upsertJsonLd('product-jsonld', seo.jsonLd)
+
+    return () => removeJsonLd('product-jsonld')
+  }, [product, category])
+
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-20 text-center text-gray-400 text-sm">
+      <div className="max-w-7xl mx-auto px-6 flex flex-col items-center justify-center gap-3 min-h-[70vh] text-gray-400 text-sm">
+        <Loader2 size={28} className="animate-spin" />
         Cargando producto…
+      </div>
+    )
+  }
+
+  if (serviceDown) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+        <p className="text-xl font-bold text-black">No pudimos conectar con el servidor</p>
+        <p className="text-sm text-gray-500 mt-2">Verifica tu conexión e intenta de nuevo.</p>
+        <button onClick={() => window.location.reload()} className="btn-primary mt-5 mx-auto">Reintentar</button>
       </div>
     )
   }
@@ -133,18 +283,19 @@ export default function ProductDetailPage() {
     )
   }
 
-  const finalBase       = discountedPrice(product.precio, product.descuento)
-  const precioExtra     = calcPrecioExtra(product, seleccionadas)
-  const finalPrice      = finalBase + precioExtra
-  const stock           = getStock(product.id, seleccionadas)
-  const rating          = 4.0 + (product.id % 5) * 0.2
-  const reviewCount     = 15 + (product.id % 30)
+  const finalBase = discountedPrice(product.precio, product.descuento)
+  const precioExtra = calcPrecioExtra(product, seleccionadas)
+  const finalPrice = finalBase + precioExtra
+  const stock = getStock(product.id, seleccionadas)
+  const { ratingPromedio, totalResenas, items: listaResenas } = resenas
+  const tieneResenas = totalResenas > 0
+  const puedeResenar = isAuthenticated && estadoResena.compro && !estadoResena.yaReseno
   const caracteristicas = buildCaracteristicas(product, category)
-  const variantes       = product.variantes ?? []
+  const variantes = product.variantes ?? []
   const requiredForStock = stockRequiredNames(product)
 
   const mediaItems = (() => {
-    const imgs  = (product.imagenes ?? []).slice(0, 5).map((img) => ({
+    const imgs = (product.imagenes ?? []).slice(0, 5).map((img) => ({
       type: 'image', src: img.url ?? img, varId: img.varId ?? null,
     }))
     const video = product.video ? [{ type: 'video', src: product.video, varId: null }] : []
@@ -153,7 +304,17 @@ export default function ProductDetailPage() {
 
   /* Seleccionar una opción de variante */
   const handleVariante = (varianteName, valor, opcion) => {
-    setSeleccionadas((prev) => ({ ...prev, [varianteName]: valor }))
+    setSeleccionadas((prev) => {
+      const next = { ...prev, [varianteName]: valor }
+      // Talla es la dimensión principal (requerida) y Color depende de ella: al cambiar
+      // de talla, si el color ya elegido no existe para la nueva talla, se limpia — así
+      // nunca queda una combinación inexistente ni se bloquea el cambio de talla.
+      if (varianteName === 'Talla' && next.Color) {
+        const comboStock = getStock(product.id, { Talla: valor, Color: next.Color })
+        if (comboStock === 0) delete next.Color
+      }
+      return next
+    })
     setError('')
     setCantidad(1)
     // Si se seleccionó un color y alguna imagen tiene varId, cambiar a la primera imagen de ese color
@@ -164,7 +325,7 @@ export default function ProductDetailPage() {
   }
 
   /* Agregar al carrito */
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/producto/${id}` } })
       return
@@ -184,17 +345,26 @@ export default function ProductDetailPage() {
     }
     if (stock === 0) { setError('Producto agotado'); return }
     setError('')
-    addToCart({
-      productId: product.id,
-      nombre:    product.nombre,
-      precio:    finalPrice,
-      imagen:    mediaItems.find((m) => m.type === 'image')?.src ?? '',
-      marca:     product.marca,
-      variantes: seleccionadas,
-      cantidad,
-    })
-    setAdded(true)
-    setTimeout(() => setAdded(false), 2500)
+    try {
+      await addToCart({
+        productId: product.id,
+        variantes: seleccionadas,
+        cantidad,
+      })
+      setAdded(true)
+      setTimeout(() => setAdded(false), 2500)
+    } catch (err) {
+      setError(err.message || 'No se pudo agregar al carrito')
+    }
+  }
+
+  const favorito = isFavorito(product.id)
+  const handleFavorito = () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/producto/${id}` } })
+      return
+    }
+    toggleFavorito(product.id)
   }
 
   const waText = encodeURIComponent(
@@ -237,22 +407,23 @@ export default function ProductDetailPage() {
         {mediaItems.length > 0 && (
           <div className="flex flex-col lg:flex-row gap-3">
 
-            {/* Visor principal */}
-            <div className="order-1 lg:order-2 flex-1 bg-gray-50 rounded-2xl overflow-hidden aspect-square">
+            {/* Visor principal — el contenedor siempre mide igual (aspect-square);
+                object-contain evita recortes, así ninguna imagen se ve más "grande" que otra */}
+            <div className="order-1 lg:order-2 flex-1 bg-gray-50 overflow-hidden aspect-square">
               {mediaItems[activeMedia]?.type === 'video'
                 ? (
                   <video
                     key={mediaItems[activeMedia].src}
                     src={mediaItems[activeMedia].src}
                     controls autoPlay loop playsInline
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                   />
                 )
                 : (
                   <img
                     src={mediaItems[activeMedia]?.src ?? mediaItems[0].src}
                     alt={product.nombre}
-                    className="w-full h-full object-cover transition-opacity duration-150"
+                    className="w-full h-full object-contain transition-opacity duration-150"
                   />
                 )
               }
@@ -265,7 +436,7 @@ export default function ProductDetailPage() {
                   <button
                     key={i}
                     onClick={() => setActiveMedia(i)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    className={`flex-shrink-0 w-16 h-16 overflow-hidden border-2 transition-all ${
                       activeMedia === i ? 'border-black' : 'border-transparent hover:border-gray-300'
                     }`}
                   >
@@ -290,10 +461,19 @@ export default function ProductDetailPage() {
         <div className="flex flex-col gap-5">
 
           {/* Badges */}
-          <div className="flex flex-wrap gap-2">
-            {product.etiquetas.includes('nuevo')       && <span className="badge-new">Nuevo</span>}
-            {product.descuento > 0                     && <span className="badge-sale">-{product.descuento}% OFF</span>}
-            {product.etiquetas.includes('mas-vendido') && <span className="badge-hot">Más vendido</span>}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap gap-2">
+              {product.etiquetas.includes('nuevo') && <span className="badge-new">Nuevo</span>}
+              {product.descuento > 0 && <span className="badge-sale">-{product.descuento}% OFF</span>}
+              {product.etiquetas.includes('mas-vendido') && <span className="badge-hot">Más vendido</span>}
+            </div>
+            <button
+              onClick={handleFavorito}
+              className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-accent transition-colors flex-shrink-0"
+            >
+              <Heart size={16} className={favorito ? 'text-accent fill-accent' : ''} />
+              {favorito ? 'En favoritos' : 'Agregar a favoritos'}
+            </button>
           </div>
 
           {/* Marca + nombre + rating */}
@@ -304,10 +484,12 @@ export default function ProductDetailPage() {
             <h1 className="text-2xl sm:text-3xl font-black text-black leading-tight mt-1">
               {product.nombre}
             </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <Stars count={Math.round(rating)} />
-              <span className="text-xs text-gray-400">{rating.toFixed(1)} · {reviewCount} reseñas</span>
-            </div>
+            {tieneResenas && (
+              <div className="flex items-center gap-2 mt-2">
+                <Stars count={Math.round(ratingPromedio)} />
+                <span className="text-xs text-gray-400">{ratingPromedio.toFixed(1)} · {totalResenas} reseñas</span>
+              </div>
+            )}
           </div>
 
           {/* Precio */}
@@ -317,7 +499,7 @@ export default function ProductDetailPage() {
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <span className="text-3xl font-black text-accent">{fmt(finalPrice)}</span>
                   <span className="text-xl text-gray-400 line-through">{fmt(product.precio + precioExtra)}</span>
-                  <span className="text-sm font-bold bg-accent text-white px-2 py-0.5 rounded-lg">
+                  <span className="text-sm font-bold bg-accent text-white px-2 py-0.5 ">
                     -{product.descuento}% OFF
                   </span>
                 </div>
@@ -354,17 +536,24 @@ export default function ProductDetailPage() {
 
                 <div className="flex flex-wrap gap-2">
                   {variante.opciones.map((opcion) => {
-                    const isSelected  = selVal === opcion.valor
-                    const optionStock = getStock(product.id, { [variante.nombre]: opcion.valor })
-                    const isOut       = optionStock === 0
+                    const isSelected = selVal === opcion.valor
+                    // Talla siempre usa su stock propio agregado (nunca se bloquea por color).
+                    // Color, en cambio, se filtra por la talla ya elegida para mostrar solo
+                    // los colores que realmente existen en esa talla (ej. 41 solo viene en Blanco).
+                    // Sin talla elegida aún, se muestra el stock agregado del color.
+                    const optionStock = variante.tipo === 'color' && seleccionadas.Talla
+                      ? getStock(product.id, { Talla: seleccionadas.Talla, Color: opcion.valor }) ?? 0
+                      : opcion.stock ?? 0
+                    const isOut = optionStock === 0
 
                     if (variante.tipo === 'color') {
                       return (
                         <button
                           key={opcion.valor}
                           title={opcion.valor}
+                          disabled={isOut}
                           onClick={() => handleVariante(variante.nombre, opcion.valor, opcion)}
-                          className={`color-dot ${isSelected ? 'color-dot-active' : ''}`}
+                          className={`color-dot ${isSelected ? 'color-dot-active' : ''} ${isOut ? 'color-dot-disabled' : ''}`}
                           style={{ backgroundColor: opcion.hex }}
                         />
                       )
@@ -413,7 +602,7 @@ export default function ProductDetailPage() {
 
           {/* Cantidad + Agregar al carrito */}
           <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex items-center border-2 border-gray-200 rounded-xl overflow-hidden flex-shrink-0">
+            <div className="flex items-center border-2 border-gray-200 overflow-hidden flex-shrink-0">
               <button onClick={() => setCantidad((q) => Math.max(1, q - 1))}
                 className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 transition-colors">
                 <Minus size={16} />
@@ -427,7 +616,7 @@ export default function ProductDetailPage() {
             </div>
 
             <button onClick={handleAddToCart}
-              className={`flex-1 flex items-center justify-center gap-2 font-bold text-sm rounded-xl px-5 py-3 transition-all active:scale-95 ${
+              className={`flex-1 flex items-center justify-center gap-2 font-bold text-sm px-5 py-3 transition-all active:scale-95 ${
                 added ? 'bg-accent-dark text-white' : 'bg-black text-white hover:bg-gray-800'
               }`}>
               {added
@@ -439,7 +628,7 @@ export default function ProductDetailPage() {
           {/* WhatsApp */}
           <a href={`https://wa.me/573155550001?text=${waText}`}
             target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 border-2 border-gray-200 rounded-xl px-5 py-3 text-sm font-bold text-gray-700 hover:border-black hover:text-black transition-all">
+            className="flex items-center justify-center gap-2 border-2 border-gray-200 px-5 py-3 text-sm font-bold text-gray-700 hover:border-black hover:text-black transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>
@@ -449,11 +638,11 @@ export default function ProductDetailPage() {
           {/* Beneficios */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { Icon: Truck,     text: 'Envío a todo Colombia' },
+              { Icon: Truck, text: 'Envío a todo Colombia' },
              
-              { Icon: Shield,    text: 'Compra segura' },
+              { Icon: Shield, text: 'Compra segura' },
             ].map(({ Icon, text }) => (
-              <div key={text} className="flex flex-col items-center text-center gap-1.5 p-3 bg-gray-50 rounded-xl">
+              <div key={text} className="flex flex-col items-center text-center gap-1.5 p-3 bg-gray-50 ">
                 <Icon size={18} className="text-black" />
                 <p className="text-xs text-gray-600 leading-tight">{text}</p>
               </div>
@@ -467,8 +656,8 @@ export default function ProductDetailPage() {
         <div className="flex border-b border-gray-200">
           {[
             { key: 'caracteristicas', label: 'Características' },
-            { key: 'descripcion',     label: 'Descripción' },
-            { key: 'resenas',         label: `Reseñas (${reviewCount})` },
+            { key: 'descripcion', label: 'Descripción' },
+            { key: 'resenas', label: tieneResenas ? `Reseñas (${totalResenas})` : 'Reseñas' },
           ].map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
@@ -503,44 +692,86 @@ export default function ProductDetailPage() {
 
           {tab === 'resenas' && (
             <div className="max-w-2xl space-y-6">
-              <div className="flex items-center gap-8">
-                <div className="text-center">
-                  <p className="text-5xl font-black text-black">{rating.toFixed(1)}</p>
-                  <Stars count={Math.round(rating)} size={16} />
-                  <p className="text-xs text-gray-400 mt-1">{reviewCount} reseñas</p>
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  {[5, 4, 3, 2, 1].map((n) => {
-                    const w = n === 5 ? 65 : n === 4 ? 20 : n === 3 ? 10 : n === 2 ? 3 : 2
-                    return (
-                      <div key={n} className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500 w-3">{n}</span>
-                        <Star size={10} className="text-amber-400 fill-amber-400 flex-shrink-0" />
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${w}%` }} />
-                        </div>
-                        <span className="text-xs text-gray-400 w-7">{w}%</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-              <hr className="border-gray-100" />
-              {MOCK_REVIEWS.map((r) => (
-                <div key={r.id}>
-                  <div className="flex items-center gap-2.5 mb-1.5">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
-                      {r.autor[0]}
+              {tieneResenas ? (
+                <>
+                  <div className="flex items-center gap-8">
+                    <div className="text-center">
+                      <p className="text-5xl font-black text-black">{ratingPromedio.toFixed(1)}</p>
+                      <Stars count={Math.round(ratingPromedio)} size={16} />
+                      <p className="text-xs text-gray-400 mt-1">{totalResenas} reseñas</p>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-black">{r.autor}</p>
-                      <Stars count={r.stars} size={11} />
+                    <div className="flex-1 space-y-1.5">
+                      {[5, 4, 3, 2, 1].map((n) => {
+                        const cantidad = listaResenas.filter((r) => r.calificacion === n).length
+                        const w = Math.round((cantidad / totalResenas) * 100)
+                        return (
+                          <div key={n} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 w-3">{n}</span>
+                            <Star size={10} className="text-amber-400 fill-amber-400 flex-shrink-0" />
+                            <div className="flex-1 h-1.5 bg-gray-100 overflow-hidden">
+                              <div className="h-full bg-amber-400 " style={{ width: `${w}%` }} />
+                            </div>
+                            <span className="text-xs text-gray-400 w-7">{w}%</span>
+                          </div>
+                        )
+                      })}
                     </div>
-                    <span className="ml-auto text-xs text-gray-400">{r.fecha}</span>
                   </div>
-                  <p className="text-sm text-gray-600 ml-10">{r.texto}</p>
-                </div>
-              ))}
+                  <hr className="border-gray-100" />
+                  {listaResenas.map((r) => (
+                    <div key={r.id}>
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                          {r.autor?.[0] ?? '?'}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-black">{r.autor}</p>
+                          <Stars count={r.calificacion} size={11} />
+                        </div>
+                        <span className="ml-auto text-xs text-gray-400">{formatFecha(r.creadoEn)}</span>
+                      </div>
+                      {r.cuerpo && <p className="text-sm text-gray-600 ml-10">{r.cuerpo}</p>}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">Este producto aún no tiene reseñas.</p>
+              )}
+
+              {puedeResenar && (
+                <>
+                  <hr className="border-gray-100" />
+                  <div>
+                    <p className="text-sm font-bold text-black mb-2">Compraste este producto — cuéntanos qué te pareció</p>
+                    <StarsInput value={formCalificacion} onChange={setFormCalificacion} />
+                    <textarea
+                      value={formComentario}
+                      onChange={(e) => setFormComentario(e.target.value)}
+                      placeholder="Tu comentario (opcional)"
+                      rows={3}
+                      className="mt-3 w-full text-sm border-2 border-gray-200 px-3 py-2 focus:outline-none focus:border-black transition-colors resize-none"
+                    />
+                    {errorResena && (
+                      <p className="text-xs text-red-500 flex items-center gap-1 mt-1.5">
+                        <AlertCircle size={12} /> {errorResena}
+                      </p>
+                    )}
+                    <button
+                      onClick={handleEnviarResena}
+                      disabled={enviandoResena}
+                      className="mt-3 bg-black text-white font-bold text-sm px-5 py-2.5 hover:bg-gray-800 transition-colors disabled:opacity-50"
+                    >
+                      {enviandoResena ? 'Enviando…' : 'Enviar reseña'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {isAuthenticated && estadoResena.compro && estadoResena.yaReseno && (
+                <p className="text-xs text-green-600 font-semibold flex items-center gap-1">
+                  <Check size={13} /> Ya reseñaste este producto
+                </p>
+              )}
             </div>
           )}
         </div>

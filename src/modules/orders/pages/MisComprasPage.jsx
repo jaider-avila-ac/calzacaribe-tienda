@@ -11,7 +11,7 @@ export default function MisComprasPage() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <h1 className="text-2xl font-black text-black mb-8">Mis compras</h1>
         <div className="text-center py-20">
-          <div className="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-5">
+          <div className="w-20 h-20 bg-gray-100 flex items-center justify-center mx-auto mb-5">
             <Package size={32} className="text-gray-300" />
           </div>
           <h2 className="text-lg font-black text-black">Aún no tienes pedidos</h2>

@@ -1,19 +1,35 @@
-﻿import { Link } from 'react-router-dom'
-import { Star } from 'lucide-react'
+﻿import { Link, useNavigate } from 'react-router-dom'
+import { Star, Heart } from 'lucide-react'
 import { fmt, discountedPrice } from '../../utils/format'
+import { useAuth } from '../../context/AuthContext'
+import { useWishlist } from '../../context/WishlistContext'
 
 export default function ProductCard({ product }) {
-  const { id, nombre, marca, imagenes, precio, descuento, etiquetas, tallas } = product
+  const { id, nombre, marca, imagenes, precio, descuento, etiquetas, tallas, ratingPromedio, totalResenas } = product
   const finalPrice = discountedPrice(precio, descuento)
-  const isNew     = etiquetas?.includes('nuevo')
-  const hasStock  = tallas?.some((t) => t.stock > 0) ?? true
-  const rating    = (3.8 + (id % 7) * 0.2).toFixed(1)
-  const reviews   = 12 + (id % 38)
+  const isNew = etiquetas?.includes('nuevo')
+  const hasStock = tallas?.some((t) => t.stock > 0) ?? true
+  const tieneResenas = Boolean(totalResenas > 0)
+
+  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth()
+  const { isFavorito, toggle } = useWishlist()
+  const favorito = isFavorito(id)
+
+  const handleFavorito = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/producto/${id}` } })
+      return
+    }
+    toggle(id)
+  }
 
   return (
     <Link
       to={`/producto/${id}`}
-      className="group block bg-white rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-200"
+      className="group block bg-white overflow-hidden hover:shadow-md transition-shadow duration-200"
     >
       {/* Imagen */}
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
@@ -25,20 +41,28 @@ export default function ProductCard({ product }) {
         />
 
         {descuento > 0 && (
-          <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+          <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 ">
             -{descuento}%
           </span>
         )}
 
         {isNew && !descuento && (
-          <span className="absolute top-2 left-2 bg-black text-accent text-[10px] font-bold px-1.5 py-0.5 rounded">
+          <span className="absolute top-2 left-2 bg-black text-accent text-[10px] font-bold px-1.5 py-0.5 ">
             NUEVO
           </span>
         )}
 
+        <button
+          onClick={handleFavorito}
+          aria-label={favorito ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          className="absolute top-2 right-2 w-7 h-7 bg-white/90 flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
+        >
+          <Heart size={13} className={favorito ? 'text-accent fill-accent' : 'text-gray-400'} />
+        </button>
+
         {!hasStock && (
           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-            <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200">
+            <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 border border-gray-200">
               Agotado
             </span>
           </div>
@@ -53,16 +77,18 @@ export default function ProductCard({ product }) {
           {nombre}
         </h3>
 
-        <div className="flex items-center gap-1 mt-1.5">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <Star
-              key={n}
-              size={9}
-              className={n <= Math.round(Number(rating)) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
-            />
-          ))}
-          <span className="text-[10px] text-gray-400 ml-0.5">({reviews})</span>
-        </div>
+        {tieneResenas && (
+          <div className="flex items-center gap-1 mt-1.5">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Star
+                key={n}
+                size={9}
+                className={n <= Math.round(ratingPromedio) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
+              />
+            ))}
+            <span className="text-[10px] text-gray-400 ml-0.5">({totalResenas})</span>
+          </div>
+        )}
 
         <div className="mt-2">
           {descuento > 0 ? (

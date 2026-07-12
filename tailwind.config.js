@@ -9,8 +9,8 @@ export default {
         // accent      → fondo de botones CTA, badges, highlights
         // accent-dark → hover de botones CTA
         // ────────────────────────────────────────────────────────────────────
-        accent:        '#dc2626', // red-600
-        'accent-dark': '#b91c1c', // red-700
+        accent:        '#CC031B',
+        'accent-dark': '#A30216',
       },
     },
   },

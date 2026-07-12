@@ -1,55 +1,99 @@
-// ─── Reemplazar localStorage por fetch('/api/profile') cuando haya backend ───
+import { fetchAuth } from './api'
 
-const KEY = 'calzacaribe_profile'
-
-const DEFAULTS = {
-  nombre:          '',
-  apellido:        '',
-  email:           '',
-  telefono:        '',
-  tipoDocumento:   'CC',
+export const EMPTY_PROFILE = {
+  nombre: '',
+  apellido: '',
+  email: '',
+  telefono: '',
+  tipoDocumento: 'CC',
   numeroDocumento: '',
-  direcciones:     [],   // [{ id, direccion, complemento, departamento, municipio, barrio, apartamento, contactoNombre, contactoTelefono }]
+  direcciones: [],
 }
 
-export function getProfile() {
-  try {
-    const saved = localStorage.getItem(KEY)
-    return saved ? { ...DEFAULTS, ...JSON.parse(saved) } : { ...DEFAULTS }
-  } catch {
-    return { ...DEFAULTS }
+function normalizeDireccion(d = {}) {
+  return {
+    id: d.id,
+    direccion: d.direccion ?? '',
+    complemento: d.complemento ?? '',
+    departamento: d.departamento ?? '',
+    municipio: d.municipio ?? '',
+    barrio: d.barrio ?? '',
+    apartamento: d.apartamento ?? '',
+    contactoNombre: d.contacto_nombre ?? d.contactoNombre ?? '',
+    contactoTelefono: d.contacto_telefono ?? d.contactoTelefono ?? '',
   }
 }
 
-export function saveProfile(data) {
-  const updated = { ...getProfile(), ...data }
-  localStorage.setItem(KEY, JSON.stringify(updated))
-  return updated
+function normalizeProfile(data = {}) {
+  return {
+    ...EMPTY_PROFILE,
+    id: data.id,
+    nombre: data.nombre ?? '',
+    apellido: data.apellido ?? '',
+    email: data.email ?? '',
+    telefono: data.telefono ?? '',
+    tipoDocumento: data.tipo_documento ?? data.tipoDocumento ?? 'CC',
+    numeroDocumento: data.numero_documento ?? data.numeroDocumento ?? '',
+    direcciones: Array.isArray(data.direcciones) ? data.direcciones.map(normalizeDireccion) : [],
+  }
 }
 
-// ── Direcciones ──────────────────────────────────────────
-
-export function getDirecciones() {
-  return getProfile().direcciones ?? []
+function toProfilePayload(data = {}) {
+  return {
+    nombre: data.nombre ?? '',
+    apellido: data.apellido ?? '',
+    telefono: data.telefono ?? '',
+    tipo_documento: data.tipoDocumento ?? 'CC',
+    numero_documento: data.numeroDocumento ?? '',
+  }
 }
 
-export function addDireccion(data) {
-  const profile = getProfile()
-  const nueva = { ...data, id: 'addr-' + Date.now().toString(36) }
-  const direcciones = [...(profile.direcciones ?? []), nueva]
-  return saveProfile({ direcciones }).direcciones
+function toDireccionPayload(data = {}) {
+  return {
+    direccion: data.direccion ?? '',
+    complemento: data.complemento ?? '',
+    departamento: data.departamento ?? '',
+    municipio: data.municipio ?? '',
+    barrio: data.barrio ?? '',
+    apartamento: data.apartamento ?? '',
+    contacto_nombre: data.contactoNombre ?? '',
+    contacto_telefono: data.contactoTelefono ?? '',
+  }
 }
 
-export function updateDireccion(id, data) {
-  const profile = getProfile()
-  const direcciones = (profile.direcciones ?? []).map((d) =>
-    d.id === id ? { ...d, ...data } : d
-  )
-  return saveProfile({ direcciones }).direcciones
+export async function getProfile() {
+  return normalizeProfile(await fetchAuth('/clientes/me'))
 }
 
-export function deleteDireccion(id) {
-  const profile = getProfile()
-  const direcciones = (profile.direcciones ?? []).filter((d) => d.id !== id)
-  return saveProfile({ direcciones }).direcciones
+export async function saveProfile(data) {
+  return normalizeProfile(await fetchAuth('/clientes/me', {
+    method: 'PUT',
+    body: JSON.stringify(toProfilePayload(data)),
+  }))
+}
+
+export async function getDirecciones() {
+  const profile = await getProfile()
+  return profile.direcciones
+}
+
+export async function addDireccion(data) {
+  const rows = await fetchAuth('/clientes/me/direcciones', {
+    method: 'POST',
+    body: JSON.stringify(toDireccionPayload(data)),
+  })
+  return rows.map(normalizeDireccion)
+}
+
+export async function updateDireccion(id, data) {
+  const rows = await fetchAuth(`/clientes/me/direcciones/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(toDireccionPayload(data)),
+  })
+  return rows.map(normalizeDireccion)
+}
+
+export async function deleteDireccion(id) {
+  const rows = await fetchAuth(`/clientes/me/direcciones/${id}`, { method: 'DELETE' })
+  return rows.map(normalizeDireccion)
 }

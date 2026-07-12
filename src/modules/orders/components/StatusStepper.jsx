@@ -1,10 +1,10 @@
 import { ShoppingBag, CheckCircle, Truck, PackageCheck } from 'lucide-react'
 
 const ESTADOS = [
-  { key: 'pendiente',  label: 'Pendiente',  Icon: ShoppingBag  },
-  { key: 'confirmado', label: 'Confirmado', Icon: CheckCircle  },
-  { key: 'enviado',    label: 'Enviado',    Icon: Truck        },
-  { key: 'entregado',  label: 'Entregado',  Icon: PackageCheck },
+  { key: 'pagado', label: 'Recibido', Icon: ShoppingBag },
+  { key: 'preparando', label: 'Preparando', Icon: CheckCircle },
+  { key: 'enviado', label: 'Enviado', Icon: Truck },
+  { key: 'entregado', label: 'Entregado', Icon: PackageCheck },
 ]
 
 export default function StatusStepper({ estado }) {
@@ -17,14 +17,14 @@ export default function StatusStepper({ estado }) {
   return (
     <div className="flex items-center gap-0">
       {ESTADOS.map(({ key, label, Icon }, i) => {
-        const done   = i < currentStep
+        const done = i < currentStep
         const active = i === currentStep
         return (
           <div key={key} className="flex items-center">
             <div className="flex flex-col items-center gap-1">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-                done    ? 'bg-black text-white' :
-                active  ? 'bg-black text-white ring-2 ring-black ring-offset-2' :
+              <div className={`w-7 h-7 flex items-center justify-center flex-shrink-0 transition-colors ${
+                done ? 'bg-black text-white' :
+                active ? 'bg-black text-white ring-2 ring-black ring-offset-2' :
                           'bg-gray-100 text-gray-300'
               }`}>
                 <Icon size={13} />

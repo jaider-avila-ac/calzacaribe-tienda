@@ -3,16 +3,16 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Search, ShoppingCart, Bell, CircleUserRound, AlignJustify } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
-import { getNotifications } from '../../services/notificationService'
+import { useNotifications } from '../../context/NotificationsContext'
 import CategoryDrawer from './CategoryDrawer'
 
 export default function Navbar() {
   const { count } = useCart()
   const { isAuthenticated, user } = useAuth()
+  const { unreadCount } = useNotifications()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const unreadCount = getNotifications().filter((n) => !n.leida).length
   const firstName = user?.nombre?.trim() || user?.email?.split('@')[0] || ''
   const fullName = [user?.nombre, user?.apellido].filter(Boolean).join(' ').trim()
 
@@ -46,9 +46,9 @@ export default function Navbar() {
             }`}
           >
             <div className="flex flex-col gap-[5px]">
-              <span className="block w-[22px] h-[2.5px] bg-current rounded-sm" />
-              <span className="block w-[22px] h-[2.5px] bg-current rounded-sm" />
-              <span className="block w-[22px] h-[2.5px] bg-current rounded-sm" />
+              <span className="block w-[22px] h-[2.5px] bg-current " />
+              <span className="block w-[22px] h-[2.5px] bg-current " />
+              <span className="block w-[22px] h-[2.5px] bg-current " />
             </div>
             <span className="text-[15px] font-medium">Menú</span>
           </button>
@@ -60,13 +60,13 @@ export default function Navbar() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar productos, marcas, categorías..."
-              className="w-full h-11 rounded-full bg-white pl-5 pr-14 text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-accent transition"
+              className="w-full h-11 bg-white pl-5 pr-14 text-sm text-gray-800 placeholder:text-gray-400 outline-none focus:ring-2 focus:ring-accent transition"
             />
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-accent hover:bg-accent-dark flex items-center justify-center transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-black hover:text-gray-600 transition-colors"
             >
-              <Search size={15} className="text-black" />
+              <Search size={15} />
             </button>
           </form>
 
@@ -81,7 +81,7 @@ export default function Navbar() {
             >
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute top-3.5 right-2.5 min-w-[16px] h-4 bg-red-600 text-white text-[9px] font-black rounded-full flex items-center justify-center px-0.5 border border-black">
+                <span className="absolute top-3.5 right-2.5 min-w-[16px] h-4 bg-red-600 text-white text-[9px] font-black flex items-center justify-center px-0.5 border border-black">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -108,7 +108,7 @@ export default function Navbar() {
             >
               <ShoppingCart size={24} />
               {count > 0 && (
-                <span className="absolute top-3.5 right-2 min-w-[18px] h-[18px] bg-accent text-white text-[10px] font-black rounded-full flex items-center justify-center px-0.5">
+                <span className="absolute top-3.5 right-2 min-w-[18px] h-[18px] bg-accent text-white text-[10px] font-black flex items-center justify-center px-0.5">
                   {count}
                 </span>
               )}
@@ -152,7 +152,7 @@ export default function Navbar() {
             >
               <ShoppingCart size={20} />
               {count > 0 && (
-                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-accent text-white text-[10px] font-black rounded-full flex items-center justify-center px-0.5">
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-accent text-white text-[10px] font-black flex items-center justify-center px-0.5">
                   {count}
                 </span>
               )}
@@ -167,13 +167,13 @@ export default function Navbar() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Buscar..."
-                className="w-full h-9 rounded-full bg-white pl-4 pr-12 text-sm text-gray-800 placeholder:text-gray-400 outline-none"
+                className="w-full h-9 bg-white pl-4 pr-12 text-sm text-gray-800 placeholder:text-gray-400 outline-none"
               />
               <button
                 type="submit"
-                className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-accent hover:bg-accent-dark flex items-center justify-center transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-black hover:text-gray-600 transition-colors"
               >
-                <Search size={13} className="text-black" />
+                <Search size={13} />
               </button>
             </form>
           </div>

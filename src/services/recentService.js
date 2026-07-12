@@ -52,3 +52,11 @@ export function getCategoriaFavorita() {
 export function clearRecientes() {
   try { localStorage.removeItem(KEY) } catch {}
 }
+
+// Quita del historial los productos que ya no existen o fueron desactivados,
+// y persiste la lista limpia para que no vuelvan a aparecer.
+export function pruneRecientes(validIds) {
+  const list = getRecientes(MAX).filter((p) => validIds.has(p.id))
+  try { localStorage.setItem(KEY, JSON.stringify(list)) } catch {}
+  return list
+}

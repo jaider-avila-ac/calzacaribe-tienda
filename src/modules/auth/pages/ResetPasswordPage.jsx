@@ -6,12 +6,12 @@ import { authService } from '../../../services/authService'
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
 
-  const [code,      setCode]      = useState('')
-  const [password,  setPassword]  = useState('')
-  const [showPass,  setShowPass]  = useState(false)
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
-  const [done,      setDone]      = useState(false)
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -43,7 +43,7 @@ export default function ResetPasswordPage() {
             <p className="text-sm text-gray-500">Ya puedes iniciar sesión con tu nueva contraseña.</p>
             <button
               onClick={() => navigate('/login')}
-              className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors"
+              className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors"
             >
               Iniciar sesión
             </button>
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {error && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">{error}</div>
+              <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 text-center">{error}</div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -68,7 +68,7 @@ export default function ResetPasswordPage() {
                   type="text" required value={code} onChange={(e) => setCode(e.target.value)}
                   placeholder="123456"
                   maxLength={6}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+                  className="w-full px-4 py-3 border border-gray-200 text-sm focus:outline-none focus:border-black transition-colors"
                 />
               </div>
               <div>
@@ -81,7 +81,7 @@ export default function ResetPasswordPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
                     minLength={6}
-                    className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+                    className="w-full px-4 py-3 pr-12 border border-gray-200 text-sm focus:outline-none focus:border-black transition-colors"
                   />
                   <button
                     type="button" onClick={() => setShowPass((v) => !v)}
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
               </div>
               <button
                 type="submit" disabled={loading}
-                className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <><Loader2 size={16} className="animate-spin" />Guardando…</> : 'Guardar contraseña'}
               </button>

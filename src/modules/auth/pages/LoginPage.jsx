@@ -4,7 +4,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
 
-const GOOGLE_CLIENT_ID = '354623240504-8vulj2rf7j1pa4q8tu2f021nctsuovi8.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 function GoogleIcon() {
   return (
@@ -29,17 +29,17 @@ function TermsText() {
 }
 
 export default function LoginPage() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const from      = location.state?.from ?? '/'
+  const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from ?? '/'
   const { login } = useAuth()
 
-  const [view,      setView]      = useState('social')
-  const [email,     setEmail]     = useState('')
-  const [password,  setPassword]  = useState('')
-  const [showPass,  setShowPass]  = useState(false)
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
+  const [view, setView] = useState('social')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
 
   const success = useCallback((data) => {
@@ -92,6 +92,9 @@ export default function LoginPage() {
     })
     window.google.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        const reason = notification.getNotDisplayedReason?.() ?? notification.getSkippedReason?.()
+        console.warn('[Google Sign-In] no se mostró el selector de cuentas:', reason)
+        setError('No se pudo mostrar el inicio de sesión de Google en este dominio.')
         setGoogleLoading(false)
       }
     })
@@ -120,7 +123,7 @@ export default function LoginPage() {
 
           {/* Error */}
           {error && (
-            <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 text-center">
               {error}
             </div>
           )}
@@ -133,14 +136,14 @@ export default function LoginPage() {
                 <button
                   onClick={handleGoogleSignIn}
                   disabled={googleLoading}
-                  className="w-full h-[54px] border border-gray-200 rounded-xl text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60"
+                  className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60"
                 >
                   {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
                   Continuar con Google
                 </button>
                 <button
                   onClick={() => setView('email')}
-                  className="w-full h-[54px] border border-gray-200 rounded-xl text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center active:scale-[0.98]"
+                  className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center active:scale-[0.98]"
                 >
                   Continuar con correo
                 </button>
@@ -166,7 +169,7 @@ export default function LoginPage() {
                     type="email" required value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="correo@ejemplo.com"
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+                    className="w-full px-4 py-3 border border-gray-200 text-sm focus:outline-none focus:border-black transition-colors"
                   />
                 </div>
                 <div>
@@ -187,7 +190,7 @@ export default function LoginPage() {
                       type={showPass ? 'text' : 'password'} required value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+                      className="w-full px-4 py-3 pr-12 border border-gray-200 text-sm focus:outline-none focus:border-black transition-colors"
                     />
                     <button
                       type="button"
@@ -200,7 +203,7 @@ export default function LoginPage() {
                 </div>
                 <button
                   type="submit" disabled={loading}
-                  className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {loading ? <><Loader2 size={16} className="animate-spin" />Ingresando…</> : 'Ingresar'}
                 </button>
@@ -228,11 +231,11 @@ export default function LoginPage() {
 }
 
 function ForgotInline({ onBack }) {
-  const navigate  = useNavigate()
-  const [email,   setEmail]   = useState('')
+  const navigate = useNavigate()
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent,    setSent]    = useState(false)
-  const [error,   setError]   = useState('')
+  const [sent, setSent] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -257,7 +260,7 @@ function ForgotInline({ onBack }) {
         </p>
         <button
           onClick={() => navigate('/restablecer')}
-          className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors"
+          className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors"
         >
           Ingresar código
         </button>
@@ -275,18 +278,18 @@ function ForgotInline({ onBack }) {
         Te enviaremos un código de 6 dígitos para restablecerla.
       </p>
       {error && (
-        <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">{error}</div>
+        <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 text-center">{error}</div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="email" required value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="tu@correo.com"
-          className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-black transition-colors"
+          className="w-full px-4 py-3 border border-gray-200 text-sm focus:outline-none focus:border-black transition-colors"
         />
         <button
           type="submit" disabled={loading}
-          className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {loading ? <><Loader2 size={16} className="animate-spin" />Enviando…</> : 'Enviar código'}
         </button>

@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 import { CartProvider } from './context/CartContext'
 import { OrdersProvider } from './context/OrdersContext'
 import { AuthProvider } from './context/AuthContext'
+import { NotificationsProvider } from './context/NotificationsContext'
+import { WishlistProvider } from './context/WishlistContext'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import StoreLayout from './components/layout/StoreLayout'
 import LoginPage from './modules/auth/pages/LoginPage'
@@ -16,17 +18,20 @@ import CartPage from './modules/cart/pages/CartPage'
 import MisComprasPage from './modules/orders/pages/MisComprasPage'
 import ConfiguracionPage from './modules/profile/pages/ConfiguracionPage'
 import NotificationsPage from './modules/notifications/pages/NotificationsPage'
+import FavoritesPage from './modules/favorites/pages/FavoritesPage'
 import SearchPage from './modules/search/pages/SearchPage'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
-  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [pathname])
   return null
 }
 
 export default function App() {
   return (
     <AuthProvider>
+      <NotificationsProvider>
+      <WishlistProvider>
       <CartProvider>
         <OrdersProvider>
         <BrowserRouter>
@@ -49,12 +54,15 @@ export default function App() {
                 <Route path="mis-compras" element={<MisComprasPage />} />
                 <Route path="configuracion" element={<ConfiguracionPage />} />
                 <Route path="notificaciones" element={<NotificationsPage />} />
+                <Route path="favoritos" element={<FavoritesPage />} />
               </Route>
             </Route>
           </Routes>
         </BrowserRouter>
         </OrdersProvider>
       </CartProvider>
+      </WishlistProvider>
+      </NotificationsProvider>
     </AuthProvider>
   )
 }

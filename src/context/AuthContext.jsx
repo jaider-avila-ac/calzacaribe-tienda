@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { tokenStore } from '../services/tokenStore'
 
 const AuthCtx = createContext(null)
@@ -18,6 +18,13 @@ export function AuthProvider({ children }) {
     setUser(null)
     setIsAuthenticated(false)
   }, [])
+
+  // El token pudo vencer/invalidarse entre requests (ver fetchAuth en services/api.js);
+  // cuando eso pasa cerramos sesión en vez de dejar la UI mostrando 401 repetidos.
+  useEffect(() => {
+    window.addEventListener('auth:expired', logout)
+    return () => window.removeEventListener('auth:expired', logout)
+  }, [logout])
 
   return (
     <AuthCtx.Provider value={{ isAuthenticated, user, login, logout }}>

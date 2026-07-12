@@ -4,9 +4,9 @@ import { ChevronDown, ChevronRight, X, SlidersHorizontal } from 'lucide-react'
 import { getActiveCategories } from '../../services/categoryService'
 
 const GENEROS = [
-  { value: 'mujer',  label: 'Mujer' },
+  { value: 'mujer', label: 'Mujer' },
   { value: 'hombre', label: 'Hombre' },
-  { value: 'niños',  label: 'Niños' },
+  { value: 'niños', label: 'Niños' },
   { value: 'unisex', label: 'Unisex' },
 ]
 
@@ -24,9 +24,9 @@ export default function LeftSidebar({ onClose }) {
   }, [])
 
   const activeCatId = params.get('categoria') ? Number(params.get('categoria')) : null
-  const activeSub   = params.get('subcategoria') ?? ''
-  const activeGen   = params.get('genero') ?? ''
-  const isCatalog   = location.pathname.startsWith('/catalogo')
+  const activeSub = params.get('subcategoria') ?? ''
+  const activeGen = params.get('genero') ?? ''
+  const isCatalog = location.pathname.startsWith('/catalogo')
 
   const setFilter = (key, value) => {
     const next = new URLSearchParams(params)
@@ -56,7 +56,7 @@ export default function LeftSidebar({ onClose }) {
       {onClose && (
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <span className="text-sm font-bold text-black">Menú</span>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100">
+          <button onClick={onClose} className="p-1 hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>
@@ -78,7 +78,7 @@ export default function LeftSidebar({ onClose }) {
         </Link>
 
         {categories.map((cat) => {
-          const isActive   = activeCatId === cat.id
+          const isActive = activeCatId === cat.id
           const isExpanded = expandedCat === cat.id
 
           return (
@@ -109,7 +109,7 @@ export default function LeftSidebar({ onClose }) {
                   }}
                   className={`left-nav-sub w-full text-left ${activeSub === sub ? 'left-nav-sub-active' : ''}`}
                 >
-                  {activeSub === sub && <span className="w-1 h-1 rounded-full bg-black inline-block mr-1" />}
+                  {activeSub === sub && <span className="w-1 h-1 bg-black inline-block mr-1" />}
                   {sub}
                 </button>
               ))}
@@ -132,7 +132,7 @@ export default function LeftSidebar({ onClose }) {
                 <button
                   key={g.value}
                   onClick={() => setFilter('genero', activeGen === g.value ? '' : g.value)}
-                  className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
+                  className={`text-xs px-2.5 py-1 border font-medium transition-all ${
                     activeGen === g.value
                       ? 'bg-black text-white border-black'
                       : 'border-gray-200 text-gray-600 hover:border-black'

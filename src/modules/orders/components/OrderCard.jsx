@@ -5,11 +5,21 @@ import { fmt } from '../../../utils/format'
 import StatusStepper from './StatusStepper'
 
 const ESTADO_BADGE = {
-  pendiente:  'bg-amber-100 text-amber-700',
-  confirmado: 'bg-blue-100 text-blue-700',
-  enviado:    'bg-violet-100 text-violet-700',
-  entregado:  'bg-green-100 text-green-700',
-  cancelado:  'bg-red-100 text-red-600',
+  pagado: 'bg-blue-100 text-blue-700',
+  preparando: 'bg-gray-100 text-gray-700',
+  enviado: 'bg-violet-100 text-violet-700',
+  entregado: 'bg-green-100 text-green-700',
+  cancelado: 'bg-red-100 text-red-600',
+  devuelto: 'bg-orange-100 text-orange-700',
+}
+
+const ESTADO_LABEL = {
+  pagado: 'Recibido',
+  preparando: 'Preparando',
+  enviado: 'Enviado',
+  entregado: 'Entregado',
+  cancelado: 'Cancelado',
+  devuelto: 'Devuelto',
 }
 
 function formatDate(iso) {
@@ -23,15 +33,15 @@ export default function OrderCard({ order }) {
   const badge = ESTADO_BADGE[order.estado] ?? 'bg-gray-100 text-gray-600'
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white border border-gray-100 overflow-hidden">
 
       {/* Encabezado */}
       <div className="flex flex-wrap items-start gap-3 p-4 sm:p-5">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-0.5">
             <span className="text-sm font-black text-black">#{order.id}</span>
-            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${badge}`}>
-              {order.estado.charAt(0).toUpperCase() + order.estado.slice(1)}
+            <span className={`text-[11px] font-bold px-2.5 py-0.5 ${badge}`}>
+              {ESTADO_LABEL[order.estado] ?? order.estado}
             </span>
           </div>
           <p className="text-xs text-gray-400">{formatDate(order.fecha)}</p>
@@ -55,13 +65,13 @@ export default function OrderCard({ order }) {
           <Link
             key={i}
             to={`/producto/${item.productId}`}
-            className="flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-300 transition-colors"
+            className="flex-shrink-0 w-14 h-14 overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-300 transition-colors"
           >
             <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
           </Link>
         ))}
         {order.items.length > 5 && (
-          <div className="flex-shrink-0 w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+          <div className="flex-shrink-0 w-14 h-14 bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
             +{order.items.length - 5}
           </div>
         )}
@@ -85,7 +95,7 @@ export default function OrderCard({ order }) {
               <img
                 src={item.imagen}
                 alt={item.nombre}
-                className="w-12 h-12 rounded-lg object-cover bg-gray-50 flex-shrink-0"
+                className="w-12 h-12 object-cover bg-gray-50 flex-shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-black line-clamp-1">{item.nombre}</p>

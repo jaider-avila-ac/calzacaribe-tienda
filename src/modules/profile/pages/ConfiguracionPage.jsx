@@ -1,91 +1,95 @@
-﻿import { useState } from 'react'
-import { Check, Eye, EyeOff, AlertCircle, Plus, Pencil, Trash2, MapPin } from 'lucide-react'
-import {
-  getProfile, saveProfile,
-  getDirecciones, addDireccion, updateDireccion, deleteDireccion,
-} from '../../../services/profileService'
+import { useEffect, useState } from 'react'
+import { AlertCircle, Check, Eye, EyeOff, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
+import FormField from '../../../components/ui/FormField'
 import FormInput from '../../../components/ui/FormInput'
 import FormSelect from '../../../components/ui/FormSelect'
-import FormField from '../../../components/ui/FormField'
+import {
+  EMPTY_PROFILE,
+  addDireccion,
+  deleteDireccion,
+  getProfile,
+  saveProfile,
+  updateDireccion,
+} from '../../../services/profileService'
 
 const TIPOS_DOC = ['CC', 'CE', 'TI', 'NIT', 'Pasaporte']
 
 const DEPARTAMENTOS = [
-  'Amazonas','Antioquia','Arauca','Atlántico','Bolívar','Boyacá','Caldas',
-  'Caquetá','Casanare','Cauca','Cesar','Chocó','Córdoba','Cundinamarca',
-  'Guainía','Guaviare','Huila','La Guajira','Magdalena','Meta','Nariño',
-  'Norte de Santander','Putumayo','Quindío','Risaralda','San Andrés y Providencia',
-  'Santander','Sucre','Tolima','Valle del Cauca','Vaupés','Vichada',
+  'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bolívar', 'Boyacá', 'Caldas',
+  'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca',
+  'Guainía', 'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta', 'Nariño',
+  'Norte de Santander', 'Putumayo', 'Quindío', 'Risaralda', 'San Andrés y Providencia',
+  'Santander', 'Sucre', 'Tolima', 'Valle del Cauca', 'Vaupés', 'Vichada',
 ]
 
-/* ── Helpers ─────────────────────────────────────────────── */
-
-function useSectionSave() {
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleSave = (data, validate) => {
-    const err = validate?.(data)
-    if (err) { setError(err); return false }
-    setError('')
-    saveProfile(data)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    return true
-  }
-
-  return { saved, error, setError, handleSave }
+const ADDR_EMPTY = {
+  direccion: '',
+  complemento: '',
+  departamento: '',
+  municipio: '',
+  barrio: '',
+  apartamento: '',
+  contactoNombre: '',
+  contactoTelefono: '',
 }
 
 function SectionCard({ title, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6">
+    <section className="bg-white border border-gray-100 p-5 sm:p-6">
       <h2 className="text-sm font-black text-black uppercase tracking-widest mb-5">{title}</h2>
       {children}
-    </div>
+    </section>
   )
 }
 
-function SaveButton({ saved }) {
+function SaveButton({ saved, saving }) {
   return (
     <button
       type="submit"
-      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+      disabled={saving}
+      className={`flex items-center gap-2 px-5 py-2.5 text-sm font-bold transition-all active:scale-95 ${
         saved ? 'bg-accent-dark text-white' : 'bg-black text-white hover:bg-gray-800'
-      }`}
+      } disabled:opacity-60 disabled:cursor-not-allowed`}
     >
-      {saved ? <><Check size={15} /> Guardado</> : 'Guardar cambios'}
+      {saving ? 'Guardando...' : saved ? <><Check size={15} /> Guardado</> : 'Guardar cambios'}
     </button>
   )
 }
 
-/* ══════════════════════════════════════════════════════════
-   SECCIÓN: Información personal
-═══════════════════════════════════════════════════════════ */
+function PersonalSection({ profile, onProfileSaved }) {
+  const [form, setForm] = useState(profile)
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-function PersonalSection({ profile, setProfile }) {
-  const { saved, error, handleSave } = useSectionSave()
-  const [form, setForm] = useState({
-    nombre:          profile.nombre,
-    apellido:        profile.apellido,
-    email:           profile.email,
-    telefono:        profile.telefono,
-    tipoDocumento:   profile.tipoDocumento,
-    numeroDocumento: profile.numeroDocumento,
-  })
+  useEffect(() => {
+    setForm(profile)
+  }, [profile])
 
-  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }))
+  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
-    const ok = handleSave(form, (d) => {
-      if (!d.nombre.trim())   return 'El nombre es obligatorio'
-      if (!d.apellido.trim()) return 'El apellido es obligatorio'
-      if (d.email && !/\S+@\S+\.\S+/.test(d.email)) return 'Correo no válido'
-      if (d.telefono && !/^\+?[\d\s\-()]{7,15}$/.test(d.telefono)) return 'Teléfono no válido'
-      if (d.numeroDocumento && !/^[\d\-A-Za-z]{4,20}$/.test(d.numeroDocumento.trim())) return 'Número de documento no válido'
-    })
-    if (ok) setProfile((p) => ({ ...p, ...form }))
+    if (!form.nombre.trim()) return setError('El nombre es obligatorio')
+    if (!form.apellido.trim()) return setError('El apellido es obligatorio')
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) return setError('Correo no válido')
+    if (form.telefono && !/^\+?[\d\s\-()]{7,15}$/.test(form.telefono)) return setError('Teléfono no válido')
+    if (form.numeroDocumento && !/^[\d\-A-Za-z]{4,20}$/.test(form.numeroDocumento.trim())) {
+      return setError('Número de documento no válido')
+    }
+
+    setSaving(true)
+    setError('')
+    try {
+      const updated = await saveProfile(form)
+      onProfileSaved(updated)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar la información')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -99,14 +103,14 @@ function PersonalSection({ profile, setProfile }) {
             <FormInput value={form.apellido} onChange={set('apellido')} placeholder="Tu apellido" />
           </FormField>
           <FormField label="Correo electrónico">
-            <FormInput value={form.email} onChange={set('email')} type="email" placeholder="correo@ejemplo.com" />
+            <FormInput value={form.email} readOnly type="email" placeholder="correo@ejemplo.com" />
           </FormField>
           <FormField label="Teléfono / Celular">
             <FormInput value={form.telefono} onChange={set('telefono')} placeholder="+57 300 000 0000" />
           </FormField>
           <FormField label="Tipo de documento">
             <FormSelect value={form.tipoDocumento} onChange={set('tipoDocumento')}>
-              {TIPOS_DOC.map((t) => <option key={t}>{t}</option>)}
+              {TIPOS_DOC.map((tipo) => <option key={tipo}>{tipo}</option>)}
             </FormSelect>
           </FormField>
           <FormField label="Número de documento">
@@ -114,46 +118,44 @@ function PersonalSection({ profile, setProfile }) {
           </FormField>
         </div>
         {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
-        <div className="flex justify-end pt-1"><SaveButton saved={saved} /></div>
+        <div className="flex justify-end pt-1"><SaveButton saved={saved} saving={saving} /></div>
       </form>
     </SectionCard>
   )
 }
 
-/* ══════════════════════════════════════════════════════════
-   FORMULARIO de dirección (reutilizado en agregar/editar)
-═══════════════════════════════════════════════════════════ */
-
-const ADDR_EMPTY = {
-  direccion: '', complemento: '', departamento: '', municipio: '',
-  barrio: '', apartamento: '', contactoNombre: '', contactoTelefono: '',
-}
-
 function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
   const [form, setForm] = useState(inicial)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const set = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }))
+  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
-    if (!form.direccion.trim())        { setError('La dirección es obligatoria'); return }
-    if (!form.departamento)            { setError('Selecciona un departamento'); return }
-    if (!form.municipio.trim())        { setError('El municipio es obligatorio'); return }
-    if (!form.barrio.trim())           { setError('El barrio es obligatorio'); return }
-    if (!form.contactoNombre.trim())   { setError('El nombre de contacto es obligatorio'); return }
-    if (!form.contactoTelefono.trim()) { setError('El teléfono de contacto es obligatorio'); return }
+    if (!form.direccion.trim()) return setError('La dirección es obligatoria')
+    if (!form.departamento) return setError('Selecciona un departamento')
+    if (!form.municipio.trim()) return setError('El municipio es obligatorio')
+    if (!form.barrio.trim()) return setError('El barrio es obligatorio')
+    if (!form.contactoNombre.trim()) return setError('El nombre de contacto es obligatorio')
+    if (!form.contactoTelefono.trim()) return setError('El teléfono de contacto es obligatorio')
+
+    setSaving(true)
     setError('')
-    onSave(form)
+    try {
+      await onSave(form)
+    } catch (err) {
+      setError(err.message || 'No se pudo guardar la dirección')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 pt-2">
-
       <FormField label="Dirección o lugar de entrega">
         <FormInput value={form.direccion} onChange={set('direccion')} placeholder="Ej: Carrera 71d #1-14 Sur" />
       </FormField>
-
       <FormField label="Complemento (opcional)">
         <FormInput value={form.complemento} onChange={set('complemento')} placeholder="Sin complemento" />
       </FormField>
@@ -162,7 +164,7 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
         <FormField label="Departamento">
           <FormSelect value={form.departamento} onChange={set('departamento')}>
             <option value="">Selecciona un departamento</option>
-            {DEPARTAMENTOS.map((d) => <option key={d}>{d}</option>)}
+            {DEPARTAMENTOS.map((dep) => <option key={dep}>{dep}</option>)}
           </FormSelect>
         </FormField>
         <FormField label="Municipio / Localidad">
@@ -185,14 +187,14 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
           </FormField>
           <FormField label="Teléfono">
             <div className="flex">
-              <span className="flex items-center px-3 border border-gray-200 border-r-0 rounded-l-xl bg-gray-50 text-sm text-gray-500 flex-shrink-0">
+              <span className="flex items-center px-3 border border-gray-200 border-r-0 bg-gray-50 text-sm text-gray-500 flex-shrink-0">
                 +57
               </span>
               <FormInput
                 value={form.contactoTelefono}
                 onChange={set('contactoTelefono')}
                 placeholder="310 2144184"
-                className="rounded-l-none border-l-0"
+                className="border-l-0"
               />
             </div>
           </FormField>
@@ -200,7 +202,6 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
       </div>
 
       {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
-
       <div className="flex items-center gap-3 justify-end pt-1">
         <button
           type="button"
@@ -211,73 +212,86 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
         </button>
         <button
           type="submit"
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-black text-white hover:bg-gray-800 transition-colors active:scale-95"
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold bg-black text-white hover:bg-gray-800 transition-colors active:scale-95 disabled:opacity-60"
         >
-          <Check size={15} /> Guardar dirección
+          <Check size={15} /> {saving ? 'Guardando...' : 'Guardar dirección'}
         </button>
       </div>
     </form>
   )
 }
 
-/* ══════════════════════════════════════════════════════════
-   SECCIÓN: Direcciones de envío
-═══════════════════════════════════════════════════════════ */
-
-function DireccionesSection() {
-  const [direcciones, setDirecciones] = useState(() => getDirecciones())
+function DireccionesSection({ direcciones, onDireccionesSaved }) {
   const [modo, setModo] = useState(null)
+  const [error, setError] = useState('')
 
-  const handleAdd  = (data) => { setDirecciones(addDireccion(data));            setModo(null) }
-  const handleEdit = (id, data) => { setDirecciones(updateDireccion(id, data)); setModo(null) }
-  const handleDelete = (id) => {
-    setDirecciones(deleteDireccion(id))
-    if (modo?.id === id) setModo(null)
+  const handleAdd = async (data) => {
+    setError('')
+    onDireccionesSaved(await addDireccion(data))
+    setModo(null)
+  }
+
+  const handleEdit = async (id, data) => {
+    setError('')
+    onDireccionesSaved(await updateDireccion(id, data))
+    setModo(null)
+  }
+
+  const handleDelete = async (id) => {
+    setError('')
+    try {
+      onDireccionesSaved(await deleteDireccion(id))
+      if (modo?.id === id) setModo(null)
+    } catch (err) {
+      setError(err.message || 'No se pudo eliminar la dirección')
+    }
   }
 
   return (
     <SectionCard title="Direcciones de envío">
-
       {direcciones.length > 0 && (
         <div className="space-y-3 mb-4">
-          {direcciones.map((d) => {
-            if (modo?.id === d.id) {
+          {direcciones.map((direccion) => {
+            if (modo?.id === direccion.id) {
               return (
-                <div key={d.id} className="border border-gray-200 rounded-xl p-4">
+                <div key={direccion.id} className="border border-gray-200 p-4">
                   <p className="text-xs font-black text-black uppercase tracking-widest mb-3">Editar dirección</p>
                   <DireccionForm
-                    inicial={d}
-                    onSave={(data) => handleEdit(d.id, data)}
+                    inicial={direccion}
+                    onSave={(data) => handleEdit(direccion.id, data)}
                     onCancel={() => setModo(null)}
                   />
                 </div>
               )
             }
             return (
-              <div key={d.id} className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50">
+              <div key={direccion.id} className="flex items-start gap-3 p-4 border border-gray-100 bg-gray-50">
                 <MapPin size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-black leading-snug">
-                    {d.direccion}{d.apartamento ? `, Apto ${d.apartamento}` : ''}
+                    {direccion.direccion}{direccion.apartamento ? `, Apto ${direccion.apartamento}` : ''}
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {[d.barrio, d.municipio, d.departamento].filter(Boolean).join(', ')}
+                    {[direccion.barrio, direccion.municipio, direccion.departamento].filter(Boolean).join(', ')}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {d.contactoNombre} · +57 {d.contactoTelefono}
+                    {direccion.contactoNombre} · +57 {direccion.contactoTelefono}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
-                    onClick={() => setModo({ id: d.id })}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-black hover:bg-white transition-colors"
+                    type="button"
+                    onClick={() => setModo({ id: direccion.id })}
+                    className="p-1.5 text-gray-400 hover:text-black hover:bg-white transition-colors"
                     title="Editar"
                   >
                     <Pencil size={14} />
                   </button>
                   <button
-                    onClick={() => handleDelete(d.id)}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    type="button"
+                    onClick={() => handleDelete(direccion.id)}
+                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                     title="Eliminar"
                   >
                     <Trash2 size={14} />
@@ -289,12 +303,14 @@ function DireccionesSection() {
         </div>
       )}
 
+      {error && <p className="text-xs text-red-500 flex items-center gap-1 mb-3"><AlertCircle size={12} />{error}</p>}
+
       {direcciones.length === 0 && modo !== 'agregar' && (
         <p className="text-sm text-gray-400 mb-4">Aún no tienes direcciones guardadas.</p>
       )}
 
       {modo === 'agregar' && (
-        <div className="border border-gray-200 rounded-xl p-4 mb-4">
+        <div className="border border-gray-200 p-4 mb-4">
           <p className="text-xs font-black text-black uppercase tracking-widest mb-3">Nueva dirección</p>
           <DireccionForm onSave={handleAdd} onCancel={() => setModo(null)} />
         </div>
@@ -302,6 +318,7 @@ function DireccionesSection() {
 
       {modo !== 'agregar' && (
         <button
+          type="button"
           onClick={() => setModo('agregar')}
           className="flex items-center gap-2 text-sm font-bold text-black hover:underline"
         >
@@ -312,26 +329,22 @@ function DireccionesSection() {
   )
 }
 
-/* ══════════════════════════════════════════════════════════
-   SECCIÓN: Seguridad
-═══════════════════════════════════════════════════════════ */
-
 function ContrasenaSection() {
-  const { saved, error, setError, handleSave } = useSectionSave()
-  const [form, setForm]   = useState({ actual: '', nueva: '', confirmar: '' })
-  const [show, setShow]   = useState({ actual: false, nueva: false, confirmar: false })
+  const [form, setForm] = useState({ actual: '', nueva: '', confirmar: '' })
+  const [show, setShow] = useState({ actual: false, nueva: false, confirmar: false })
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
 
-  const set    = (k) => (e) => setForm((p) => ({ ...p, [k]: e.target.value }))
-  const toggle = (k) => () => setShow((p) => ({ ...p, [k]: !p[k] }))
+  const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
+  const toggle = (key) => () => setShow((prev) => ({ ...prev, [key]: !prev[key] }))
 
   const onSubmit = (e) => {
     e.preventDefault()
-    const ok = handleSave({ contrasena: form.nueva }, () => {
-      if (!form.actual)                  return 'Ingresa tu contraseña actual'
-      if (form.nueva.length < 8)         return 'La nueva contraseña debe tener al menos 8 caracteres'
-      if (form.nueva !== form.confirmar) return 'Las contraseñas no coinciden'
-    })
-    if (ok) setForm({ actual: '', nueva: '', confirmar: '' })
+    if (!form.actual) return setError('Ingresa tu contraseña actual')
+    if (form.nueva.length < 8) return setError('La nueva contraseña debe tener al menos 8 caracteres')
+    if (form.nueva !== form.confirmar) return setError('Las contraseñas no coinciden')
+    setError('El cambio de contraseña aún no está disponible')
+    setSaved(false)
   }
 
   return (
@@ -339,8 +352,8 @@ function ContrasenaSection() {
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { key: 'actual',    label: 'Contraseña actual'    },
-            { key: 'nueva',     label: 'Nueva contraseña'     },
+            { key: 'actual', label: 'Contraseña actual' },
+            { key: 'nueva', label: 'Nueva contraseña' },
             { key: 'confirmar', label: 'Confirmar contraseña' },
           ].map(({ key, label }) => (
             <FormField key={key} label={label}>
@@ -367,26 +380,64 @@ function ContrasenaSection() {
           Mínimo 8 caracteres. Usa letras, números y símbolos para mayor seguridad.
         </p>
         {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
-        <div className="flex justify-end pt-1"><SaveButton saved={saved} /></div>
+        <div className="flex justify-end pt-1"><SaveButton saved={saved} saving={false} /></div>
       </form>
     </SectionCard>
   )
 }
 
-/* ══════════════════════════════════════════════════════════
-   PÁGINA
-═══════════════════════════════════════════════════════════ */
-
 export default function ConfiguracionPage() {
-  const [profile, setProfile] = useState(() => getProfile())
+  const [profile, setProfile] = useState(EMPTY_PROFILE)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    setError('')
+
+    getProfile()
+      .then((data) => {
+        if (alive) setProfile(data)
+      })
+      .catch((err) => {
+        if (alive) setError(err.message || 'No se pudo cargar la información del usuario')
+      })
+      .finally(() => {
+        if (alive) setLoading(false)
+      })
+
+    return () => { alive = false }
+  }, [])
+
+  const handleDireccionesSaved = (direcciones) => {
+    setProfile((prev) => ({ ...prev, direcciones }))
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 pb-16">
       <h1 className="text-2xl font-black text-black mb-6">Configuración</h1>
       <div className="max-w-2xl space-y-4">
-        <PersonalSection  profile={profile} setProfile={setProfile} />
-        <DireccionesSection />
-        <ContrasenaSection />
+        {loading && (
+          <div className="bg-white border border-gray-100 p-5 text-sm text-gray-500">
+            Cargando información...
+          </div>
+        )}
+        {error && (
+          <div className="bg-red-50 border border-red-100 p-5 text-sm text-red-600 flex items-center gap-2">
+            <AlertCircle size={16} /> {error}
+          </div>
+        )}
+        {!loading && !error && (
+          <>
+            <PersonalSection profile={profile} onProfileSaved={setProfile} />
+            <DireccionesSection
+              direcciones={profile.direcciones}
+              onDireccionesSaved={handleDireccionesSaved}
+            />
+            <ContrasenaSection />
+          </>
+        )}
       </div>
     </div>
   )

@@ -1,55 +1,79 @@
-import { createContext, useContext, useReducer, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { useAuth } from './AuthContext'
+import { addItem, clearCarrito, getCarrito, removeItem, updateItem } from '../services/cartService'
+import { getTiendaConfig } from '../services/tiendaConfigService'
 
 const CartContext = createContext(null)
 
-function cartReducer(state, action) {
-  switch (action.type) {
-    case 'ADD': {
-      const key = `${action.item.productId}-${JSON.stringify(action.item.variantes ?? {})}`
-      const exists = state.find((i) => i.key === key)
-      if (exists) {
-        return state.map((i) => i.key === key ? { ...i, cantidad: i.cantidad + action.item.cantidad } : i)
-      }
-      return [...state, { ...action.item, key }]
-    }
-    case 'UPDATE_QTY':
-      if (action.cantidad <= 0) return state.filter((i) => i.key !== action.key)
-      return state.map((i) => i.key === action.key ? { ...i, cantidad: action.cantidad } : i)
-    case 'REMOVE':
-      return state.filter((i) => i.key !== action.key)
-    case 'CLEAR':
-      return []
-    case 'HYDRATE':
-      return action.items
-    default:
-      return state
-  }
-}
-
 export function CartProvider({ children }) {
-  const [cart, dispatch] = useReducer(cartReducer, [])
+  const { isAuthenticated } = useAuth()
+  const [cart, setCart] = useState([])
+  const [total, setTotal] = useState(0)
+  const [count, setCount] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [freeShip, setFreeShip] = useState({ activo: true, desde: 200000 })
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('calzacaribe_cart')
-      if (saved) dispatch({ type: 'HYDRATE', items: JSON.parse(saved) })
-    } catch {}
+    let alive = true
+    getTiendaConfig().then((cfg) => {
+      if (!alive) return
+      setFreeShip({
+        activo: cfg?.envio_gratis_activo ?? true,
+        desde: cfg?.envio_gratis_desde ?? 200000,
+      })
+    })
+    return () => { alive = false }
   }, [])
 
+  const applyCarrito = (data) => {
+    setCart(data.items)
+    setTotal(data.total)
+    setCount(data.count)
+  }
+
   useEffect(() => {
-    localStorage.setItem('calzacaribe_cart', JSON.stringify(cart))
-  }, [cart])
+    if (!isAuthenticated) {
+      setCart([])
+      setTotal(0)
+      setCount(0)
+      return
+    }
+    let alive = true
+    setLoading(true)
+    getCarrito()
+      .then((data) => { if (alive) applyCarrito(data) })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [isAuthenticated])
 
-  const addToCart = (item) => dispatch({ type: 'ADD', item })
-  const removeFromCart = (key) => dispatch({ type: 'REMOVE', key })
-  const updateQty = (key, cantidad) => dispatch({ type: 'UPDATE_QTY', key, cantidad })
-  const clearCart = () => dispatch({ type: 'CLEAR' })
+  const addToCart = async (item) => {
+    const data = await addItem({
+      productId: item.productId,
+      talla: item.variantes?.Talla,
+      color: item.variantes?.Color,
+      cantidad: item.cantidad ?? 1,
+    })
+    applyCarrito(data)
+  }
 
-  const total = cart.reduce((s, i) => s + i.precio * i.cantidad, 0)
-  const count = cart.reduce((s, i) => s + i.cantidad, 0)
+  const updateQty = async (key, cantidad) => {
+    const data = await updateItem(key, cantidad)
+    applyCarrito(data)
+  }
+
+  const removeFromCart = async (key) => {
+    const data = await removeItem(key)
+    applyCarrito(data)
+  }
+
+  const clearCart = async () => {
+    const data = await clearCarrito()
+    applyCarrito(data)
+  }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, total, count }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, total, count, loading, freeShip }}>
       {children}
     </CartContext.Provider>
   )

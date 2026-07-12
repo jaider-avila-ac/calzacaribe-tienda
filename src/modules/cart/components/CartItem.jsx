@@ -4,7 +4,7 @@ import { fmt } from '../../../utils/format'
 
 export default function CartItem({ item, onUpdateQty, onRemove }) {
   return (
-    <div className={`flex gap-4 bg-white rounded-xl border p-4 transition-opacity ${
+    <div className={`flex gap-4 bg-white border p-4 transition-opacity ${
       item.isOutOfStock
         ? 'border-red-100 opacity-60'
         : item.isOverStock
@@ -18,12 +18,12 @@ export default function CartItem({ item, onUpdateQty, onRemove }) {
           <img
             src={item.imagen}
             alt={item.nombre}
-            className={`w-20 h-20 rounded-lg object-cover bg-gray-50 ${item.isOutOfStock ? 'grayscale' : ''}`}
+            className={`w-20 h-20 object-cover bg-gray-50 ${item.isOutOfStock ? 'grayscale' : ''}`}
           />
         </Link>
         {item.isOutOfStock && (
-          <span className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
-            <span className="text-white text-[10px] font-black bg-red-600 px-1.5 py-0.5 rounded">Agotado</span>
+          <span className="absolute inset-0 flex items-center justify-center bg-black/30 ">
+            <span className="text-white text-[10px] font-black bg-red-600 px-1.5 py-0.5 ">Agotado</span>
           </span>
         )}
       </div>
@@ -41,7 +41,7 @@ export default function CartItem({ item, onUpdateQty, onRemove }) {
 
         <div className="flex flex-wrap gap-1.5 mt-1">
           {Object.entries(item.variantes ?? {}).map(([k, v]) => (
-            <span key={k} className="text-xs bg-gray-100 px-2 py-0.5 rounded-full text-gray-500">
+            <span key={k} className="text-xs bg-gray-100 px-2 py-0.5 text-gray-500">
               {k}: {v}
             </span>
           ))}
@@ -59,7 +59,7 @@ export default function CartItem({ item, onUpdateQty, onRemove }) {
         )}
 
         <div className="flex items-center justify-between mt-2">
-          <div className={`flex items-center border rounded-lg overflow-hidden ${
+          <div className={`flex items-center border overflow-hidden ${
             item.isOutOfStock ? 'border-gray-100 opacity-40 pointer-events-none' : 'border-gray-200'
           }`}>
             <button

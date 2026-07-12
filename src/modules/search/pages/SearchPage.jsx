@@ -5,19 +5,31 @@ import { getProducts } from '../../../services/productService'
 import ProductCard from '../../../components/ui/ProductCard'
 
 const SORT_OPTIONS = [
-  { value: 'relevancia',  label: 'Relevancia' },
-  { value: 'precio-asc',  label: 'Precio: menor a mayor' },
+  { value: 'relevancia', label: 'Relevancia' },
+  { value: 'precio-asc', label: 'Precio: menor a mayor' },
   { value: 'precio-desc', label: 'Precio: mayor a menor' },
-  { value: 'descuento',   label: 'Mayor descuento' },
-  { value: 'nombre',      label: 'Nombre A–Z' },
+  { value: 'descuento', label: 'Mayor descuento' },
+  { value: 'nombre', label: 'Nombre A–Z' },
 ]
 
 /* ── Panel de marcas (desktop) ──────────────────────────── */
 
+function brandKey(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/(^|\s)(\S)/g, (_, space, letter) => `${space}${letter.toUpperCase()}`)
+}
+
+function brandLabel(value) {
+  return String(value ?? '').trim().replace(/\s+/g, ' ')
+}
+
 function MarcasPanel({ marcas: disponibles, seleccionadas, onToggle, onClear }) {
   return (
     <aside className="w-[200px] flex-shrink-0 hidden sm:block">
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 sticky top-24">
+      <div className="bg-white border border-gray-100 p-4 sticky top-24">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-black text-black uppercase tracking-widest">Marcas</p>
           {seleccionadas.length > 0 && (
@@ -27,13 +39,13 @@ function MarcasPanel({ marcas: disponibles, seleccionadas, onToggle, onClear }) 
           )}
         </div>
         <ul className="space-y-0.5">
-          {disponibles.map(({ nombre, count }) => {
-            const checked = seleccionadas.includes(nombre)
+          {disponibles.map(({ key, nombre, count }) => {
+            const checked = seleccionadas.includes(key)
             return (
-              <li key={nombre}>
+              <li key={key}>
                 <label className="flex items-center justify-between gap-2 py-1.5 cursor-pointer group">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
+                    <div className={`w-4 h-4 flex-shrink-0 border-2 flex items-center justify-center transition-colors ${
                       checked ? 'bg-black border-black' : 'border-gray-300 group-hover:border-gray-500'
                     }`}>
                       {checked && (
@@ -42,7 +54,7 @@ function MarcasPanel({ marcas: disponibles, seleccionadas, onToggle, onClear }) 
                         </svg>
                       )}
                     </div>
-                    <input type="checkbox" checked={checked} onChange={() => onToggle(nombre)} className="sr-only" />
+                    <input type="checkbox" checked={checked} onChange={() => onToggle(key)} className="sr-only" />
                     <span className={`text-sm truncate transition-colors ${checked ? 'font-bold text-black' : 'text-gray-600 group-hover:text-black'}`}>
                       {nombre}
                     </span>
@@ -64,12 +76,12 @@ function MarcasPanel({ marcas: disponibles, seleccionadas, onToggle, onClear }) 
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [allProducts, setAllProducts]   = useState([])
+  const [allProducts, setAllProducts] = useState([])
 
-  const query       = searchParams.get('q') ?? ''
-  const sort        = searchParams.get('sort') ?? 'relevancia'
+  const query = searchParams.get('q') ?? ''
+  const sort = searchParams.get('sort') ?? 'relevancia'
   const marcasParam = searchParams.get('marcas') ?? ''
-  const marcasSel   = useMemo(() => marcasParam.split(',').filter(Boolean), [marcasParam])
+  const marcasSel = useMemo(() => marcasParam.split(',').map(brandKey).filter(Boolean), [marcasParam])
 
   useEffect(() => {
     getProducts().then((data) => setAllProducts(Array.isArray(data) ? data : [])).catch(() => {})
@@ -77,35 +89,46 @@ export default function SearchPage() {
 
   /* Todos los productos que coinciden con la búsqueda (antes de filtrar por marca) */
   const baseResults = useMemo(() => {
-    if (!query.trim()) return []
-    const q = query.toLowerCase()
+    const q = query.trim().toLowerCase()
+    if (!q) return []
     return allProducts.filter((p) =>
-      p.nombre.toLowerCase().includes(q)       ||
+      p.activo && (
+      p.nombre.toLowerCase().includes(q) ||
       p.descripcion?.toLowerCase().includes(q) ||
-      p.marca?.toLowerCase().includes(q)       ||
+      p.marca?.toLowerCase().includes(q) ||
       p.subcategoria?.toLowerCase().includes(q)
+      )
     )
   }, [query, allProducts])
 
   /* Marcas disponibles con conteo */
   const marcasDisponibles = useMemo(() => {
     const counts = {}
-    baseResults.forEach((p) => { if (p.marca) counts[p.marca] = (counts[p.marca] ?? 0) + 1 })
-    return Object.entries(counts)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([nombre, count]) => ({ nombre, count }))
+    baseResults.forEach((p) => {
+      const nombre = brandLabel(p.marca)
+      const key = brandKey(nombre)
+      if (!key) return
+      counts[key] = counts[key] ?? { key, nombre, count: 0 }
+      counts[key].count += 1
+    })
+    return Object.values(counts).sort((a, b) => a.nombre.localeCompare(b.nombre))
   }, [baseResults])
+
+  const marcasByKey = useMemo(
+    () => Object.fromEntries(marcasDisponibles.map((m) => [m.key, m.nombre])),
+    [marcasDisponibles]
+  )
 
   /* Resultados finales: filtro de marca + orden */
   const results = useMemo(() => {
     let list = marcasSel.length > 0
-      ? baseResults.filter((p) => marcasSel.includes(p.marca))
+      ? baseResults.filter((p) => marcasSel.includes(brandKey(p.marca)))
       : baseResults
 
-    if (sort === 'precio-asc')        list = [...list].sort((a, b) => a.precio - b.precio)
-    else if (sort === 'precio-desc')  list = [...list].sort((a, b) => b.precio - a.precio)
-    else if (sort === 'nombre')       list = [...list].sort((a, b) => a.nombre.localeCompare(b.nombre))
-    else if (sort === 'descuento')    list = [...list].sort((a, b) => b.descuento - a.descuento)
+    if (sort === 'precio-asc') list = [...list].sort((a, b) => a.precio - b.precio)
+    else if (sort === 'precio-desc') list = [...list].sort((a, b) => b.precio - a.precio)
+    else if (sort === 'nombre') list = [...list].sort((a, b) => a.nombre.localeCompare(b.nombre))
+    else if (sort === 'descuento') list = [...list].sort((a, b) => b.descuento - a.descuento)
 
     return list
   }, [baseResults, marcasSel, sort])
@@ -119,9 +142,10 @@ export default function SearchPage() {
   }
 
   const toggleMarca = (marca) => {
-    const next = marcasSel.includes(marca)
-      ? marcasSel.filter((m) => m !== marca)
-      : [...marcasSel, marca]
+    const key = brandKey(marca)
+    const next = marcasSel.includes(key)
+      ? marcasSel.filter((m) => m !== key)
+      : [...marcasSel, key]
     setParam('marcas', next.join(','))
   }
 
@@ -154,13 +178,13 @@ export default function SearchPage() {
           {/* Chips de marcas en móvil */}
           {showMarcas && (
             <div className="sm:hidden mb-4 flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {marcasDisponibles.map(({ nombre, count }) => {
-                const active = marcasSel.includes(nombre)
+              {marcasDisponibles.map(({ key, nombre, count }) => {
+                const active = marcasSel.includes(key)
                 return (
                   <button
-                    key={nombre}
-                    onClick={() => toggleMarca(nombre)}
-                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    key={key}
+                    onClick={() => toggleMarca(key)}
+                    className={`flex-shrink-0 px-3 py-1.5 text-xs font-semibold border transition-all ${
                       active ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'
                     }`}
                   >
@@ -171,7 +195,7 @@ export default function SearchPage() {
               {marcasSel.length > 0 && (
                 <button
                   onClick={() => setParam('marcas', '')}
-                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-500 transition-all"
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 text-xs font-semibold border border-gray-200 text-gray-500 hover:border-red-400 hover:text-red-500 transition-all"
                 >
                   <X size={10} /> Limpiar
                 </button>
@@ -189,7 +213,7 @@ export default function SearchPage() {
               <select
                 value={sort}
                 onChange={(e) => setParam('sort', e.target.value)}
-                className="appearance-none bg-white border border-gray-200 rounded-lg pl-3 pr-8 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
+                className="appearance-none bg-white border border-gray-200 pl-3 pr-8 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
               >
                 {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>

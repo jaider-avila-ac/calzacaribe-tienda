@@ -1,4 +1,5 @@
 import { fetchPublic } from './api'
+import { getPersisted, setPersisted } from '../utils/persistentCache'
 
 // Adapta la respuesta de la API pública al formato que espera la tienda
 function adaptProduct(p) {
@@ -40,29 +41,76 @@ function adaptProduct(p) {
       stock: v.stock ?? 0,
     })),
     caracteristicas: p.caracteristicas ?? {},
+    ratingPromedio: p.rating_promedio ?? null,
+    totalResenas:   p.total_resenas ?? 0,
   }
 }
 
-// Caché por sesión para el listado completo
-let _cache = null
+// Caché del listado completo — se persiste en localStorage (si el navegador lo permite)
+// para que una visita nueva pinte de inmediato con lo último visto, y siempre se
+// refresca en segundo plano contra el servidor (stale-while-revalidate).
+const ALL_CACHE_KEY = 'productos:all'
+let _cache = getPersisted(ALL_CACHE_KEY) ?? null
 let _promise = null
+const _listeners = new Set()
 
-async function loadAll() {
-  if (_cache) return _cache
-  if (!_promise) _promise = fetchPublic('/productos').then((data) => {
-    _cache = Array.isArray(data) ? data.map(adaptProduct) : []
-    return _cache
-  })
+function notifyAll() {
+  _listeners.forEach((fn) => fn(_cache))
+}
+
+export function subscribeProducts(fn) {
+  _listeners.add(fn)
+  return () => _listeners.delete(fn)
+}
+
+export function getProductsSnapshot() {
+  return _cache
+}
+
+function fetchAllFresh() {
+  if (_promise) return _promise
+  _promise = fetchPublic('/productos')
+    .then((data) => {
+      _cache = Array.isArray(data) ? data.map(adaptProduct) : []
+      setPersisted(ALL_CACHE_KEY, _cache)
+      notifyAll()
+      return _cache
+    })
+    .finally(() => { _promise = null })
   return _promise
 }
 
-export async function getProducts() {
-  return loadAll()
+async function loadAll() {
+  return _cache ?? fetchAllFresh()
 }
 
+export async function getProducts() {
+  if (_cache) {
+    fetchAllFresh().catch(() => {}) // refresca en 2do plano; si falla (ej. backend caído),
+    return _cache                   // ya se notificó vía 'backend:offline' en services/api.js
+  }
+  return fetchAllFresh()
+}
+
+// Siempre en vivo contra el servidor — nunca se sirve desde caché, para confirmar
+// que el producto sigue existiendo/activo justo antes de mostrarlo o comprarlo.
 export async function getProductById(id) {
   const data = await fetchPublic(`/productos/${id}`)
   return adaptProduct(data)
+}
+
+// Página del catálogo de una categoría — usada por el scroll infinito.
+export async function getProductsPage({ catId, q, page = 0, size = 24 } = {}) {
+  const params = new URLSearchParams({ page, size })
+  if (catId) params.set('catId', catId)
+  if (q) params.set('q', q)
+  const data = await fetchPublic(`/productos/paginado?${params.toString()}`)
+  return {
+    content: Array.isArray(data?.content) ? data.content.map(adaptProduct) : [],
+    page: data?.page ?? page,
+    totalPages: data?.total_pages ?? 0,
+    totalElements: data?.total_elements ?? 0,
+  }
 }
 
 export async function getProductsByCategory(categoriaId, limit) {
@@ -79,7 +127,7 @@ export async function searchProducts(query = '') {
     (p) =>
       p.activo && (
         p.nombre.toLowerCase().includes(q)         ||
-        p.marca.toLowerCase().includes(q)          ||
+        (p.marca ?? '').toLowerCase().includes(q)  ||
         (p.subcategoria ?? '').toLowerCase().includes(q) ||
         (p.descripcion ?? '').toLowerCase().includes(q)
       )

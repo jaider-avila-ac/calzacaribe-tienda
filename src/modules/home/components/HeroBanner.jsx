@@ -1,7 +1,28 @@
-﻿import { Link } from 'react-router-dom'
+﻿import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowRight, Truck, RefreshCw, Shield } from 'lucide-react'
+import { getTiendaConfig } from '../../../services/tiendaConfigService'
+import { fmt } from '../../../utils/format'
 
 export default function HeroBanner() {
+  const [freeShip, setFreeShip] = useState({ activo: true, desde: 200000 })
+
+  useEffect(() => {
+    let alive = true
+    getTiendaConfig().then((cfg) => {
+      if (!alive) return
+      setFreeShip({
+        activo: cfg?.envio_gratis_activo ?? true,
+        desde: cfg?.envio_gratis_desde ?? 200000,
+      })
+    })
+    return () => { alive = false }
+  }, [])
+
+  const envioText = freeShip.activo
+    ? `Envío gratis en compras +${fmt(freeShip.desde)}`
+    : 'Envío rápido a todo Colombia'
+
   return (
     <>
       {/* Main hero */}
@@ -18,8 +39,8 @@ export default function HeroBanner() {
 
         <div className="container-main relative z-10 py-16 md:py-24">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 bg-accent text-white text-xs font-bold px-3 py-1.5 rounded-full mb-6">
-              <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse" />
+            <div className="inline-flex items-center gap-2 bg-accent text-white text-xs font-bold px-3 py-1.5 mb-6">
+              <span className="w-1.5 h-1.5 bg-black animate-pulse" />
               Nueva colección 2025
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white leading-tight">
@@ -30,10 +51,10 @@ export default function HeroBanner() {
               Descubre calzado y ropa de moda para toda la familia. Más de 200 referencias disponibles con envío a todo Colombia.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/catalogo" className="btn-lime text-base px-6 py-3.5 rounded-xl font-bold">
+              <Link to="/catalogo" className="btn-lime text-base px-6 py-3.5 font-bold">
                 Ver colección <ArrowRight size={18} />
               </Link>
-              <Link to="/catalogo?descuento=true" className="btn-secondary border-white text-white hover:bg-white hover:text-black px-6 py-3.5 rounded-xl">
+              <Link to="/catalogo?descuento=true" className="btn-secondary border-white text-white hover:bg-white hover:text-black px-6 py-3.5 ">
                 Ver ofertas
               </Link>
             </div>
@@ -42,7 +63,7 @@ export default function HeroBanner() {
 
         {/* Scroll indicator */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 opacity-50">
-          <div className="w-0.5 h-8 bg-white rounded-full animate-bounce" />
+          <div className="w-0.5 h-8 bg-white animate-bounce" />
         </div>
       </section>
 
@@ -51,7 +72,7 @@ export default function HeroBanner() {
         <div className="container-main py-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/20">
             {[
-              { icon: Truck, text: 'Envío gratis en compras +$200.000' },
+              { icon: Truck, text: envioText },
               { icon: RefreshCw, text: 'Cambios y devoluciones en 30 días' },
               { icon: Shield, text: 'Compra segura 100% garantizada' },
             ].map(({ icon: Icon, text }) => (

@@ -19,7 +19,7 @@ export default function CollectionsGrid() {
           <Link
             key={col.id}
             to={`/catalogo?coleccion=${col.id}`}
-            className="relative rounded-2xl overflow-hidden bg-black aspect-[16/7] flex items-center p-6 group"
+            className="relative overflow-hidden bg-black aspect-[16/7] flex items-center p-6 group"
           >
             {col.imagenUrl && (
               <img
@@ -33,7 +33,7 @@ export default function CollectionsGrid() {
               {col.descripcion && (
                 <p className="text-gray-300 text-xs mt-1 line-clamp-2">{col.descripcion}</p>
               )}
-              <span className="inline-flex items-center gap-1 mt-4 text-xs font-semibold text-white bg-white/20 px-3 py-1.5 rounded-lg group-hover:bg-white/30 transition-colors">
+              <span className="inline-flex items-center gap-1 mt-4 text-xs font-semibold text-white bg-white/20 px-3 py-1.5 group-hover:bg-white/30 transition-colors">
                 Ver colección <ArrowRight size={11} />
               </span>
             </div>

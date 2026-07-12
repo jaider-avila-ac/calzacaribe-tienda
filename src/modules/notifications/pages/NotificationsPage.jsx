@@ -1,15 +1,13 @@
-import { useState } from 'react'
 import { BellOff, CheckCheck } from 'lucide-react'
-import { getNotifications, markRead, markAllRead, deleteNotification } from '../../../services/notificationService'
+import { useNotifications } from '../../../context/NotificationsContext'
 import NotificationItem from '../components/NotificationItem'
 
 export default function NotificationsPage() {
-  const [items, setItems] = useState(() => getNotifications())
-  const unread = items.filter((n) => !n.leida).length
+  const { items, unreadCount: unread, markRead, markAllRead, deleteNotification } = useNotifications()
 
-  const handleMarkRead = (id) => setItems(markRead(id))
-  const handleMarkAll  = ()   => setItems(markAllRead())
-  const handleDelete   = (id) => setItems(deleteNotification(id))
+  const handleMarkRead = (id) => markRead(id)
+  const handleMarkAll = () => markAllRead()
+  const handleDelete = (id) => deleteNotification(id)
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 pb-16">
@@ -32,8 +30,8 @@ export default function NotificationsPage() {
       </div>
 
       {items.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white border border-gray-100 p-16 text-center">
+          <div className="w-16 h-16 bg-gray-100 flex items-center justify-center mx-auto mb-4">
             <BellOff size={28} className="text-gray-300" />
           </div>
           <p className="text-base font-black text-black mb-1">Sin notificaciones</p>

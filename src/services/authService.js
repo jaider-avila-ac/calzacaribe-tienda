@@ -1,4 +1,4 @@
-const BASE  = 'http://localhost:8080/api/v1/public/auth/tienda'
+const BASE  = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/public/auth/tienda`
 const TND   = '1'
 
 async function post(path, body) {
@@ -13,8 +13,12 @@ async function post(path, body) {
 }
 
 export const authService = {
-  register:       (email, password, nombre, apellido) =>
-    post('/register', { email, password, nombre, apellido }),
+  register:       (email, password, nombre, apellido, numeroDocumento) =>
+    post('/register', {
+      email, password, nombre, apellido,
+      tipo_documento: numeroDocumento ? 'CC' : undefined,
+      numero_documento: numeroDocumento || undefined,
+    }),
 
   verify:         (email, code) =>
     post('/verify', { email, code }),

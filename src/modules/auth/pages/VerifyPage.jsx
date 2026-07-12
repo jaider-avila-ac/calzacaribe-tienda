@@ -5,15 +5,15 @@ import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
 
 export default function VerifyPage() {
-  const navigate  = useNavigate()
-  const location  = useLocation()
-  const email     = location.state?.email ?? ''
+  const navigate = useNavigate()
+  const location = useLocation()
+  const email = location.state?.email ?? ''
   const { login } = useAuth()
 
-  const [digits,   setDigits]   = useState(['', '', '', '', '', ''])
-  const [loading,  setLoading]  = useState(false)
+  const [digits, setDigits] = useState(['', '', '', '', '', ''])
+  const [loading, setLoading] = useState(false)
   const [resending,setResending]= useState(false)
-  const [error,    setError]    = useState('')
+  const [error, setError] = useState('')
   const [resendMsg,setResendMsg]= useState('')
   const inputs = useRef([])
 
@@ -98,12 +98,12 @@ export default function VerifyPage() {
         </div>
 
         {error && (
-          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
+          <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
             {error}
           </div>
         )}
         {resendMsg && (
-          <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-sm text-green-700">
+          <div className="p-3 bg-green-50 border border-green-200 text-sm text-green-700">
             {resendMsg}
           </div>
         )}
@@ -118,14 +118,14 @@ export default function VerifyPage() {
                 value={d}
                 onChange={(e) => handleChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
-                className="w-12 h-14 text-center text-2xl font-black border-2 border-gray-200 rounded-xl focus:outline-none focus:border-black transition-colors"
+                className="w-12 h-14 text-center text-2xl font-black border-2 border-gray-200 focus:outline-none focus:border-black transition-colors"
               />
             ))}
           </div>
 
           <button
             type="submit" disabled={loading || code.length < 6}
-            className="w-full h-[54px] bg-black text-white text-base font-bold rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? <><Loader2 size={16} className="animate-spin" />Verificando…</> : 'Verificar'}
           </button>
