@@ -11,16 +11,9 @@ import {
   saveProfile,
   updateDireccion,
 } from '../../../services/profileService'
+import { DEPARTAMENTOS, municipiosDe } from '../../../data/colombiaGeo'
 
 const TIPOS_DOC = ['CC', 'CE', 'TI', 'NIT', 'Pasaporte']
-
-const DEPARTAMENTOS = [
-  'Amazonas', 'Antioquia', 'Arauca', 'Atlántico', 'Bolívar', 'Boyacá', 'Caldas',
-  'Caquetá', 'Casanare', 'Cauca', 'Cesar', 'Chocó', 'Córdoba', 'Cundinamarca',
-  'Guainía', 'Guaviare', 'Huila', 'La Guajira', 'Magdalena', 'Meta', 'Nariño',
-  'Norte de Santander', 'Putumayo', 'Quindío', 'Risaralda', 'San Andrés y Providencia',
-  'Santander', 'Sucre', 'Tolima', 'Valle del Cauca', 'Vaupés', 'Vichada',
-]
 
 const ADDR_EMPTY = {
   direccion: '',
@@ -131,11 +124,23 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
+  // Al cambiar el departamento, el municipio elegido deja de ser válido (pertenece
+  // al departamento anterior), así que se limpia para forzar a elegir uno nuevo.
+  const setDepartamento = (e) => setForm((prev) => ({ ...prev, departamento: e.target.value, municipio: '' }))
+
+  const municipios = municipiosDe(form.departamento)
+  // Si la dirección ya tenía guardado un municipio que no está en la lista (dato
+  // viejo escrito a mano antes de este cambio), se conserva como opción extra en
+  // vez de perderlo silenciosamente al editar.
+  const municipioOptions = form.municipio && !municipios.includes(form.municipio)
+    ? [form.municipio, ...municipios]
+    : municipios
+
   const onSubmit = async (e) => {
     e.preventDefault()
     if (!form.direccion.trim()) return setError('La dirección es obligatoria')
     if (!form.departamento) return setError('Selecciona un departamento')
-    if (!form.municipio.trim()) return setError('El municipio es obligatorio')
+    if (!form.municipio.trim()) return setError('Selecciona un municipio')
     if (!form.barrio.trim()) return setError('El barrio es obligatorio')
     if (!form.contactoNombre.trim()) return setError('El nombre de contacto es obligatorio')
     if (!form.contactoTelefono.trim()) return setError('El teléfono de contacto es obligatorio')
@@ -162,13 +167,16 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label="Departamento">
-          <FormSelect value={form.departamento} onChange={set('departamento')}>
+          <FormSelect value={form.departamento} onChange={setDepartamento}>
             <option value="">Selecciona un departamento</option>
             {DEPARTAMENTOS.map((dep) => <option key={dep}>{dep}</option>)}
           </FormSelect>
         </FormField>
         <FormField label="Municipio / Localidad">
-          <FormInput value={form.municipio} onChange={set('municipio')} placeholder="Bogotá" />
+          <FormSelect value={form.municipio} onChange={set('municipio')} disabled={!form.departamento}>
+            <option value="">{form.departamento ? 'Selecciona un municipio' : 'Primero elige un departamento'}</option>
+            {municipioOptions.map((mun) => <option key={mun}>{mun}</option>)}
+          </FormSelect>
         </FormField>
         <FormField label="Barrio">
           <FormInput value={form.barrio} onChange={set('barrio')} placeholder="Kennedy" />
