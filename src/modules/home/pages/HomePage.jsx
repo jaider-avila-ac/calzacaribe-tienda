@@ -143,6 +143,9 @@ export default function HomePage() {
   const activeProducts = backendOnline ? products.filter((p) => p.activo) : []
   const vendidos = activeProducts.filter((p) => p.etiquetas.includes('mas-vendido')).slice(0, 4)
   const nuevos = activeProducts.filter((p) => p.etiquetas.includes('nuevo')).slice(0, 4)
+  // Tira con movimiento constante: no depende de ninguna etiqueta, así siempre hay contenido
+  // que mostrar aunque no existan productos marcados "mas-vendido".
+  const destacados = activeProducts.slice(0, 10)
 
   // Categoría favorita al frente; el resto en su orden original
   const sortedCategories = useMemo(() => {
@@ -177,6 +180,31 @@ export default function HomePage() {
             No pudimos conectar con el servidor. Verifica tu conexión e intenta de nuevo.
           </p>
         </div>
+      )}
+
+      {/* ── Destacados: tira con movimiento constante (no depende de etiquetas) ── */}
+      {destacados.length > 0 && (
+        <section className="pt-10">
+          <div className="max-w-7xl mx-auto px-4 flex items-center justify-between mb-4">
+            <h2 className="flex items-center gap-2 text-base font-black text-black">
+              <Flame size={16} className="text-red-500" />
+              Explora nuestro catálogo
+            </h2>
+            <Link to="/catalogo"
+              className="text-xs text-gray-500 hover:text-black transition-colors flex items-center gap-1">
+              Ver todos <ArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="overflow-hidden">
+            <div className="marquee-track flex gap-3 w-max px-4">
+              {[...destacados, ...destacados].map((p, i) => (
+                <div key={`${p.id}-${i}`} className="w-36 sm:w-48 flex-shrink-0">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* ── Más vendidos ── */}

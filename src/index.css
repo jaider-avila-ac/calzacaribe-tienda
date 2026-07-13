@@ -22,6 +22,19 @@
 }
 .fade-in { animation: fadeIn 0.18s ease-out; }
 
+/* Tira de productos con movimiento constante (ver "Más vendidos" en el inicio).
+   El track duplica los items y se desplaza -50% para que el loop sea invisible. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 32s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
 /* Layout constants */
 :root {
   --header-h: 56px;
@@ -111,7 +124,7 @@
 /* Scrollbar fino */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 99px; }
+::-webkit-scrollbar-thumb { background: #e5e7eb; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
