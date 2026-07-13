@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
@@ -41,6 +41,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
+  const googleVisibleBtnRef = useRef(null)
+  const googleRealBtnRef = useRef(null)
 
   const success = useCallback((data) => {
     login(data)
@@ -65,47 +67,70 @@ export default function LoginPage() {
     }
   }
 
-  const handleGoogleSignIn = useCallback(() => {
-    if (!window.google) {
-      setError('Google no disponible. Recarga la página.')
-      return
-    }
+  const handleGoogleCredential = useCallback(async (response) => {
     setGoogleLoading(true)
     setError('')
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        try {
-          const data = await authService.googleLogin(response.credential)
-          success(data)
-        } catch (err) {
-          if (err.status === 409 && err.data?.message === 'USE_PASSWORD') {
-            setError('Esta cuenta usa contraseña. Usa el formulario de correo.')
-          } else {
-            setError('No se pudo iniciar sesión con Google. Intenta de nuevo.')
-          }
-          setGoogleLoading(false)
-        }
-      },
-      auto_select: false,
-      cancel_on_tap_outside: true,
-    })
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        const reason = notification.getNotDisplayedReason?.() ?? notification.getSkippedReason?.()
-        console.warn('[Google Sign-In] no se mostró el selector de cuentas:', reason)
-        setError('No se pudo mostrar el inicio de sesión de Google en este dominio.')
-        setGoogleLoading(false)
+    try {
+      const data = await authService.googleLogin(response.credential)
+      success(data)
+    } catch (err) {
+      if (err.status === 409 && err.data?.message === 'USE_PASSWORD') {
+        setError('Esta cuenta usa contraseña. Usa el formulario de correo.')
+      } else {
+        setError('No se pudo iniciar sesión con Google. Intenta de nuevo.')
       }
-    })
+      setGoogleLoading(false)
+    }
   }, [success])
+
+  // Renderiza el botón real de Google (invisible) superpuesto sobre el botón con
+  // nuestro propio diseño: un renderButton() disparado por gesto real del usuario
+  // no depende de sesión activa en el navegador, a diferencia de prompt() (One Tap),
+  // que falla con "opt_out_or_no_session" si no hay sesión de Google abierta.
+  useEffect(() => {
+    let cancelled = false
+    let retryTimeoutId
+    let renderFn
+
+    const setup = () => {
+      if (cancelled) return
+      if (!window.google || !googleRealBtnRef.current || !googleVisibleBtnRef.current) {
+        retryTimeoutId = setTimeout(setup, 200)
+        return
+      }
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+        auto_select: false,
+      })
+      renderFn = () => {
+        if (!googleRealBtnRef.current || !googleVisibleBtnRef.current) return
+        googleRealBtnRef.current.innerHTML = ''
+        window.google.accounts.id.renderButton(googleRealBtnRef.current, {
+          type: 'standard',
+          theme: 'outline',
+          size: 'large',
+          width: googleVisibleBtnRef.current.offsetWidth,
+        })
+      }
+      renderFn()
+      window.addEventListener('resize', renderFn)
+    }
+    setup()
+
+    return () => {
+      cancelled = true
+      clearTimeout(retryTimeoutId)
+      if (renderFn) window.removeEventListener('resize', renderFn)
+    }
+  }, [handleGoogleCredential])
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
       {/* Imagen lateral */}
       <div className="flex-1 hidden md:block overflow-hidden">
         <img
-          src="/login/imagen-login-calzacaribe.webp"
+          src="/img/imagen-login-calzacaribe.webp"
           alt="Calzacaribe"
           className="w-full h-full object-cover"
           draggable={false}
@@ -133,14 +158,22 @@ export default function LoginPage() {
             <>
               <h2 className="text-center text-2xl font-bold text-black">Iniciar sesión</h2>
               <div className="space-y-3">
-                <button
-                  onClick={handleGoogleSignIn}
-                  disabled={googleLoading}
-                  className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60"
-                >
-                  {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-                  Continuar con Google
-                </button>
+                <div className="relative w-full h-[54px]">
+                  <button
+                    ref={googleVisibleBtnRef}
+                    type="button"
+                    tabIndex={-1}
+                    disabled={googleLoading}
+                    className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60 pointer-events-none"
+                  >
+                    {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+                    Continuar con Google
+                  </button>
+                  <div
+                    ref={googleRealBtnRef}
+                    className="absolute inset-0 z-10 overflow-hidden opacity-0 [&_iframe]:!w-full [&_iframe]:!h-full"
+                  />
+                </div>
                 <button
                   onClick={() => setView('email')}
                   className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center active:scale-[0.98]"
