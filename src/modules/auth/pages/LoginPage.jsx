@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
+import { stretchGoogleButton } from '../../../utils/googleButton'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -112,6 +113,10 @@ export default function LoginPage() {
           size: 'large',
           width: googleVisibleBtnRef.current.offsetWidth,
         })
+        // Google inserta su propio div + iframe con tamaño fijo en píxeles (no
+        // ocupan el 100% del contenedor por su cuenta), así que solo esa zona
+        // quedaba clicable. Forzamos que todo lo inyectado cubra el contenedor.
+        stretchGoogleButton(googleRealBtnRef.current)
       }
       renderFn()
       window.addEventListener('resize', renderFn)
