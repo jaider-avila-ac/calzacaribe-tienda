@@ -78,8 +78,6 @@ export default function CatalogPage() {
   // que se cachea en el módulo) — se prioriza sobre la aleatoria de productos,
   // que depende de cargar el catálogo completo y por eso aparecía tarde.
   const bannerImg = activeCategory?.imagenUrl || randomBannerImg
-  const [imgLoaded, setImgLoaded] = useState(false)
-  useEffect(() => { setImgLoaded(false) }, [bannerImg])
 
   let pageTitle = 'Todo el catálogo'
   if (soloDescuento) pageTitle = 'Ofertas'
@@ -92,10 +90,10 @@ export default function CatalogPage() {
       <div className="relative bg-black overflow-hidden h-[220px] sm:h-[260px]">
         {bannerImg && (
           <img
+            key={bannerImg}
             src={bannerImg}
             alt=""
-            onLoad={() => setImgLoaded(true)}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+            className="absolute inset-0 w-full h-full object-cover"
           />
         )}
         {/* Overlay negro siempre — hace que cualquier imagen quede oscura */}
