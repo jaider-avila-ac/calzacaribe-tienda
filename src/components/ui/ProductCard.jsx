@@ -78,22 +78,24 @@ export default function ProductCard({ product }) {
       <div className="p-3">
         <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{marca}</p>
 
-        <h3 className="text-xs font-medium text-gray-800 mt-0.5 line-clamp-2 leading-snug group-hover:text-black transition-colors">
+        <h3 className="text-xs font-medium text-gray-800 mt-0.5 line-clamp-2 leading-snug min-h-[33px] group-hover:text-black transition-colors">
           {nombre}
         </h3>
 
-        {tieneResenas && (
-          <div className="flex items-center gap-1 mt-1.5">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Star
-                key={n}
-                size={9}
-                className={n <= Math.round(ratingPromedio) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
-              />
-            ))}
-            <span className="text-[10px] text-gray-400 ml-0.5">({totalResenas})</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1 mt-1.5 min-h-[11px]">
+          {tieneResenas && (
+            <>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star
+                  key={n}
+                  size={9}
+                  className={n <= Math.round(ratingPromedio) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
+                />
+              ))}
+              <span className="text-[10px] text-gray-400 ml-0.5">({totalResenas})</span>
+            </>
+          )}
+        </div>
 
         <div className="mt-2">
           {descuento > 0 ? (
