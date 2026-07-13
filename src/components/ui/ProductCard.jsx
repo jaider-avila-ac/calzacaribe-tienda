@@ -3,6 +3,7 @@ import { Star, Heart } from 'lucide-react'
 import { fmt, discountedPrice } from '../../utils/format'
 import { useAuth } from '../../context/AuthContext'
 import { useWishlist } from '../../context/WishlistContext'
+import { useInViewOnce } from '../../hooks/useInViewOnce'
 
 export default function ProductCard({ product }) {
   const { id, nombre, marca, imagenes, precio, descuento, etiquetas, tallas, ratingPromedio, totalResenas } = product
@@ -15,6 +16,7 @@ export default function ProductCard({ product }) {
   const { isAuthenticated } = useAuth()
   const { isFavorito, toggle } = useWishlist()
   const favorito = isFavorito(id)
+  const [inViewRef, inView] = useInViewOnce()
 
   const handleFavorito = (e) => {
     e.preventDefault()
@@ -28,8 +30,11 @@ export default function ProductCard({ product }) {
 
   return (
     <Link
+      ref={inViewRef}
       to={`/producto/${id}`}
-      className="group block bg-white overflow-hidden hover:shadow-md transition-shadow duration-200"
+      className={`group block bg-white overflow-hidden hover:shadow-md transition-[box-shadow,opacity,transform] duration-500 ease-out ${
+        inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+      }`}
     >
       {/* Imagen */}
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
