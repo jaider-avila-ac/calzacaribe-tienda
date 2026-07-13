@@ -21,9 +21,9 @@ function TermsText() {
   return (
     <p className="text-center text-xs text-gray-400 leading-relaxed">
       Al continuar aceptas los{' '}
-      <a href="#" className="font-bold text-black hover:underline">Términos de uso</a>
+      <a href="https://www.calzacaribe.com/terminos" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">Términos de uso</a>
       {' '}y la{' '}
-      <a href="#" className="font-bold text-black hover:underline">Política de privacidad</a>.
+      <a href="https://www.calzacaribe.com/privacidad" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">Política de privacidad</a>.
     </p>
   )
 }
