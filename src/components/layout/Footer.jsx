@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { Instagram, Facebook, MessageCircle, MapPin, Phone, Mail } from 'lucide-react'
 
 export default function Footer() {
@@ -32,16 +31,16 @@ export default function Footer() {
             <h3 className="font-bold text-sm uppercase tracking-wider text-white mb-4">Información</h3>
             <ul className="space-y-2">
               {[
-                { label: 'Política de cambios', to: '/cambios' },
-                { label: 'Guía de tallas', to: '/tallas' },
-                { label: 'Términos y condiciones', to: '/terminos' },
-                { label: 'Política de privacidad', to: '/privacidad' },
-                { label: 'Preguntas frecuentes', to: '/faq' },
-              ].map(({ label, to }) => (
-                <li key={to}>
-                  <Link to={to} className="text-sm text-white hover:underline transition-colors">
+                { label: 'Política de cambios', href: 'https://www.calzacaribe.com/cambios' },
+                { label: 'Guía de tallas', href: 'https://www.calzacaribe.com/tallas' },
+                { label: 'Términos y condiciones', href: 'https://www.calzacaribe.com/terminos' },
+                { label: 'Política de privacidad', href: 'https://www.calzacaribe.com/privacidad' },
+                { label: 'Preguntas frecuentes', href: 'https://www.calzacaribe.com/faq' },
+              ].map(({ label, href }) => (
+                <li key={href}>
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-white hover:underline transition-colors">
                     {label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
