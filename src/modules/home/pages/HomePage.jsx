@@ -186,8 +186,7 @@ export default function HomePage() {
       {destacados.length > 0 && (
         <section className="pt-10">
           <div className="max-w-7xl mx-auto px-4 flex items-center justify-between mb-4">
-            <h2 className="flex items-center gap-2 text-base font-black text-black">
-              <Flame size={16} className="text-red-500" />
+            <h2 className="text-base font-black text-black">
               Explora nuestro catálogo
             </h2>
             <Link to="/catalogo"
