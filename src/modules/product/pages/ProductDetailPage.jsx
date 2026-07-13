@@ -671,7 +671,7 @@ export default function ProductDetailPage() {
         <div className="py-6">
           {tab === 'caracteristicas' && (
             <div className="max-w-2xl">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
+              <div className="grid grid-cols-2 gap-x-4 sm:gap-x-10">
                 {caracteristicas.map(([label, value], i) => (
                   <div key={label} className={`flex flex-col py-3 border-b border-gray-100 ${i < 3 ? 'sm:col-span-1' : ''}`}>
                     <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">{label}</span>
