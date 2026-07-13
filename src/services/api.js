@@ -32,11 +32,16 @@ async function doFetch(url, options) {
   }
 }
 
+async function throwWithBackendMessage(res) {
+  const data = await res.json().catch(() => ({}))
+  throw Object.assign(new Error(data.message || `Error ${res.status}`), { status: res.status, data })
+}
+
 export async function fetchPublic(path) {
   const res = await doFetch(`${BASE}${path}`, {
     headers: { 'X-Tenant-Id': TND },
   })
-  if (!res.ok) throw new Error(`Error ${res.status}`)
+  if (!res.ok) await throwWithBackendMessage(res)
   return res.json()
 }
 
@@ -57,7 +62,7 @@ export async function fetchAuth(path, options = {}) {
     tokenStore.clear()
     window.dispatchEvent(new Event('auth:expired'))
   }
-  if (!res.ok) throw new Error(`Error ${res.status}`)
+  if (!res.ok) await throwWithBackendMessage(res)
   if (res.status === 204) return null
   return res.json().catch(() => null)
 }
