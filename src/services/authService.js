@@ -30,7 +30,7 @@ export const authService = {
     post('/login', { email, password }),
 
   googleLogin:    (idToken) =>
-    post('/google', { idToken }),
+    post('/google', { id_token: idToken }),
 
   forgotPassword: (email) =>
     post('/forgot-password', { email }),
