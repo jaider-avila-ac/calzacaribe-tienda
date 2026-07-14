@@ -21,4 +21,6 @@ export const pedidoService = {
   misCompras: () => fetchAuth('/pedidos'),
 
   estadoPedido: (numero) => fetchAuth(`/pedidos/${numero}`),
+
+  confirmarRecibido: (numero) => fetchAuth(`/pedidos/${numero}/confirmar-recibido`, { method: 'POST' }),
 }

@@ -1,10 +1,18 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Package } from 'lucide-react'
 import { useOrders } from '../../../context/OrdersContext'
 import OrderCard from '../components/OrderCard'
 
 export default function MisComprasPage() {
-  const { orders, loading } = useOrders()
+  const { orders, loading, reload } = useOrders()
+
+  // Siempre recarga al entrar a la página — evita mostrar un estado desactualizado
+  // cuando el cliente llega aquí desde una notificación de "cambió de estado".
+  useEffect(() => {
+    reload()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (loading) {
     return (

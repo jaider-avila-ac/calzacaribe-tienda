@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import { useAuth } from './AuthContext'
 import { notificationService } from '../services/notificationService'
 import { connectNotifications, disconnectNotifications } from '../services/notificationSocket'
+import { playNotificationSound } from '../utils/notificationSound'
 
 const NotificationsCtx = createContext(null)
 

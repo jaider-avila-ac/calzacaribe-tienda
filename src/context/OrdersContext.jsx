@@ -15,6 +15,7 @@ function normalizeOrder(row) {
     notas: row.notas,
     alertaStock: row.alerta_stock,
     linkSeguimiento: row.link_seguimiento,
+    confirmadoClienteEn: row.confirmado_cliente_en,
     direccion: row.dir_snapshot,
     items: (row.items ?? []).map((item) => ({
       productId: item.producto_id,

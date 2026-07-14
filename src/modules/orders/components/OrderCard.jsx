@@ -1,8 +1,12 @@
 ﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Truck } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, PackageCheck, Truck } from 'lucide-react'
 import { fmt } from '../../../utils/format'
+import { pedidoService } from '../../../services/pedidoService'
+import { useOrders } from '../../../context/OrdersContext'
 import StatusStepper from './StatusStepper'
+
+const ESTADOS_CONFIRMABLES = new Set(['enviado', 'entregado'])
 
 const ESTADO_BADGE = {
   pagado: 'bg-blue-100 text-blue-700',
@@ -30,7 +34,24 @@ function formatDate(iso) {
 
 export default function OrderCard({ order }) {
   const [expanded, setExpanded] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+  const [errorConfirmar, setErrorConfirmar] = useState('')
+  const { reload } = useOrders()
   const badge = ESTADO_BADGE[order.estado] ?? 'bg-gray-100 text-gray-600'
+
+  const puedeConfirmar = ESTADOS_CONFIRMABLES.has(order.estado) && !order.confirmadoClienteEn
+
+  const handleConfirmarRecibido = async () => {
+    setConfirmando(true)
+    setErrorConfirmar('')
+    try {
+      await pedidoService.confirmarRecibido(order.id)
+      await reload()
+    } catch (err) {
+      setErrorConfirmar(err.message || 'No se pudo confirmar. Intenta de nuevo.')
+      setConfirmando(false)
+    }
+  }
 
   return (
     <div className="bg-white border border-gray-100 overflow-hidden">
@@ -59,18 +80,43 @@ export default function OrderCard({ order }) {
         <StatusStepper estado={order.estado} />
       </div>
 
-      {/* Link de seguimiento */}
-      {order.linkSeguimiento && (
-        <div className="px-4 sm:px-5 pb-3">
-          <a
-            href={order.linkSeguimiento}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-black border border-gray-200 px-3 py-1.5 hover:border-black transition-colors"
-          >
-            <Truck size={13} /> Rastrear pedido
-          </a>
+      {/* Link de seguimiento + confirmar recibido */}
+      {(order.linkSeguimiento || puedeConfirmar || order.confirmadoClienteEn) && (
+        <div className="px-4 sm:px-5 pb-3 flex flex-wrap items-center gap-2">
+          {order.linkSeguimiento && (
+            <a
+              href={order.linkSeguimiento}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-black border border-gray-200 px-3 py-1.5 hover:border-black transition-colors"
+            >
+              <Truck size={13} /> Rastrear pedido
+            </a>
+          )}
+
+          {puedeConfirmar && (
+            <button
+              type="button"
+              onClick={handleConfirmarRecibido}
+              disabled={confirmando}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-black px-3 py-1.5 hover:bg-gray-800 transition-colors disabled:opacity-60"
+            >
+              {confirmando
+                ? <><Loader2 size={13} className="animate-spin" /> Confirmando…</>
+                : <><PackageCheck size={13} /> Confirmar que ya lo recibí</>
+              }
+            </button>
+          )}
+
+          {order.confirmadoClienteEn && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700">
+              <CheckCircle2 size={13} /> Recibido confirmado
+            </span>
+          )}
         </div>
+      )}
+      {errorConfirmar && (
+        <p className="px-4 sm:px-5 pb-3 text-xs text-red-600">{errorConfirmar}</p>
       )}
 
       {/* Miniaturas */}
