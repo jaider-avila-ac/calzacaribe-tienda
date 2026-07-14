@@ -4,7 +4,7 @@ import { ShoppingBag, AlertCircle, MapPin, ChevronRight, Loader2 } from 'lucide-
 import { useCart } from '../../../context/CartContext'
 import { useOrders } from '../../../context/OrdersContext'
 import { getStock, validateCart } from '../../../services/stockService'
-import { getDirecciones } from '../../../services/profileService'
+import { getProfile } from '../../../services/profileService'
 import { fmt } from '../../../utils/format'
 import CartItem from '../components/CartItem'
 
@@ -20,6 +20,7 @@ export default function CartPage() {
   const [direcciones, setDirecciones] = useState([])
   const [selectedDirId, setSelectedDirId] = useState(null)
   const selectedDir = direcciones.find((d) => d.id === selectedDirId) ?? null
+  const [hasDocumento, setHasDocumento] = useState(true) // true hasta confirmar lo contrario: evita bloquear el botón mientras carga
 
   // Validación de stock en tiempo real contra la API
   const [apiValidation, setApiValidation] = useState(null)
@@ -27,11 +28,12 @@ export default function CartPage() {
 
   useEffect(() => {
     let alive = true
-    getDirecciones()
-      .then((rows) => {
+    getProfile()
+      .then((profile) => {
         if (!alive) return
-        setDirecciones(rows)
-        setSelectedDirId((current) => current ?? rows[0]?.id ?? null)
+        setDirecciones(profile.direcciones)
+        setSelectedDirId((current) => current ?? profile.direcciones[0]?.id ?? null)
+        setHasDocumento(Boolean(profile.numeroDocumento?.trim()))
       })
       .catch(() => {
         if (alive) setDirecciones([])
@@ -74,7 +76,7 @@ export default function CartPage() {
   }), [cart, apiValidation])
 
   const hasCartIssues = cartValidated.some((i) => i.isOutOfStock || i.isOverStock)
-  const canCheckout = !hasCartIssues && !validating && selectedDir !== null
+  const canCheckout = !hasCartIssues && !validating && selectedDir !== null && hasDocumento
 
   const shipping = !freeShipActive ? SHIP_COST : (total >= freeShipGoal ? 0 : SHIP_COST)
   const grandTotal = total + shipping
@@ -261,6 +263,12 @@ export default function CartPage() {
           </button>
           {!selectedDir && !hasCartIssues && (
             <p className="text-xs text-center text-amber-600">Selecciona una dirección de envío</p>
+          )}
+          {selectedDir && !hasDocumento && !hasCartIssues && (
+            <p className="text-xs text-center text-amber-600">
+              Registra tu número de cédula en{' '}
+              <Link to="/configuracion" className="font-bold underline">Configuración</Link> para continuar
+            </p>
           )}
 
           <div className="flex items-center gap-3">
