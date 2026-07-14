@@ -14,7 +14,7 @@ import ProductCard from '../../../components/ui/ProductCard'
 import { useCart } from '../../../context/CartContext'
 import { useAuth } from '../../../context/AuthContext'
 import { useWishlist } from '../../../context/WishlistContext'
-import { fmt, discountedPrice } from '../../../utils/format'
+import { fmt } from '../../../utils/format'
 import { absoluteUrl, removeJsonLd, setCanonical, setMetaTag, siteOrigin, upsertJsonLd } from '../../../utils/seo'
 
 /* ── Helpers de variantes ─────────────────────────────── */
@@ -63,7 +63,7 @@ function productSeoData(product, category) {
   const origin = siteOrigin()
   const url = `${origin}/producto/${product.id}`
   const image = (product.imagenes ?? []).map((img) => absoluteUrl(img.url ?? img)).filter(Boolean)
-  const basePrice = discountedPrice(product.precio, product.descuento)
+  const basePrice = product.precioFinal ?? product.precio
   const totalStock = (product.stockVariantes ?? []).reduce((sum, item) => sum + Number(item.stock ?? 0), 0)
   const description = plainText(product.descripcion, `${product.nombre} en Calzacaribe.`)
 
@@ -283,7 +283,7 @@ export default function ProductDetailPage() {
     )
   }
 
-  const finalBase = discountedPrice(product.precio, product.descuento)
+  const finalBase = product.precioFinal ?? product.precio
   const precioExtra = calcPrecioExtra(product, seleccionadas)
   const finalPrice = finalBase + precioExtra
   const stock = getStock(product.id, seleccionadas)

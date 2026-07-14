@@ -9,7 +9,8 @@ function adaptProduct(p) {
     slug:           p.slug,
     descripcion:    p.descripcion,
     precio:         p.precio,          // precio base (tachado cuando hay descuento)
-    descuento:      p.descuento ?? 0,  // %
+    precioFinal:    p.precio_final,    // precio real a cobrar — ya viene calculado del backend
+    descuento:      p.descuento ?? 0,  // % — solo para el badge, nunca para calcular el precio
     marca:          p.marca,
     genero:         p.genero,
     categoriaId:    p.categoria_id,

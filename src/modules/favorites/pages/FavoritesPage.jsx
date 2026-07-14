@@ -49,6 +49,7 @@ export default function FavoritesPage() {
               marca: p.marca,
               imagenes: p.imagenes,
               precio: p.precio,
+              precioFinal: p.precio_final,
               descuento: p.descuento,
               etiquetas: p.etiquetas,
               tallas: p.tallas,

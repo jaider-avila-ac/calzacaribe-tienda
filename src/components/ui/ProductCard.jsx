@@ -1,13 +1,13 @@
 ﻿import { Link, useNavigate } from 'react-router-dom'
 import { Star, Heart } from 'lucide-react'
-import { fmt, discountedPrice } from '../../utils/format'
+import { fmt } from '../../utils/format'
 import { useAuth } from '../../context/AuthContext'
 import { useWishlist } from '../../context/WishlistContext'
 import { useInViewOnce } from '../../hooks/useInViewOnce'
 
 export default function ProductCard({ product }) {
-  const { id, nombre, marca, imagenes, precio, descuento, etiquetas, tallas, ratingPromedio, totalResenas } = product
-  const finalPrice = discountedPrice(precio, descuento)
+  const { id, nombre, marca, imagenes, precio, precioFinal, descuento, etiquetas, tallas, ratingPromedio, totalResenas } = product
+  const finalPrice = precioFinal ?? precio
   const isNew = etiquetas?.includes('nuevo')
   const hasStock = tallas?.some((t) => t.stock > 0) ?? true
   const tieneResenas = Boolean(totalResenas > 0)

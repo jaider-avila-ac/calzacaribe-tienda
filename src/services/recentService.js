@@ -7,6 +7,7 @@ function snapshot(product) {
     nombre:      product.nombre,
     slug:        product.slug,
     precio:      product.precio,
+    precioFinal: product.precioFinal,
     descuento:   product.descuento ?? 0,
     imagenes:    product.imagenes ?? [],
     categoriaId: product.categoriaId,
