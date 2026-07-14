@@ -41,6 +41,7 @@ function adaptProduct(p) {
       color: v.color ?? '',
       stock: v.stock ?? 0,
     })),
+    stockTotal:      p.stock_total ?? 0,
     caracteristicas: p.caracteristicas ?? {},
     ratingPromedio: p.rating_promedio ?? null,
     totalResenas:   p.total_resenas ?? 0,

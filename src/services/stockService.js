@@ -127,15 +127,6 @@ export function getStock(productId, variantes) {
   return map[key] ?? 0
 }
 
-/** Stock total de un producto (suma de todas sus opciones). */
-export function getTotalProductStock(productId) {
-  const map = initStock()
-  const pre = `${productId}-`
-  return Object.entries(map)
-    .filter(([k]) => k.startsWith(pre))
-    .reduce((s, [, v]) => s + v, 0)
-}
-
 // ── Validación en tiempo real contra la API ──────────────────────────────────
 
 /** Valida los ítems del carrito contra el stock real en la DB.

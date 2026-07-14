@@ -16,6 +16,7 @@ export async function getResenas(prdId) {
   return {
     ratingPromedio: data?.rating_promedio ?? null,
     totalResenas:   data?.total_resenas ?? 0,
+    distribucion:   data?.distribucion ?? [],
     items:          (data?.items ?? []).map(adaptResena),
   }
 }

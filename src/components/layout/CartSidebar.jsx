@@ -3,14 +3,9 @@ import { ShoppingBag, Trash2, Plus, Minus, X, ArrowRight } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 import { fmt } from '../../utils/format'
 
-const SHIP_COST = 12000
-
 export default function CartSidebar({ onClose }) {
-  const { cart, removeFromCart, updateQty, total, count, freeShip } = useCart()
+  const { cart, removeFromCart, updateQty, total, shipping, count, freeShip } = useCart()
   const freeShipActive = freeShip.activo
-  const freeShipGoal = freeShip.desde
-  const shipping = !freeShipActive ? SHIP_COST : (total >= freeShipGoal ? 0 : SHIP_COST)
-  const remaining = freeShipGoal - total
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -34,20 +29,20 @@ export default function CartSidebar({ onClose }) {
       </div>
 
       {/* Barra envío gratis (solo si el admin la tiene activa) */}
-      {freeShipActive && total > 0 && total < freeShipGoal && (
+      {freeShipActive && total > 0 && !freeShip.alcanzado && (
         <div className="px-3 py-2 bg-red-50 border-b border-red-100 flex-shrink-0">
           <p className="text-xs text-black font-medium">
-            Te faltan <strong>{fmt(remaining)}</strong> para envío gratis
+            Te faltan <strong>{fmt(freeShip.faltante)}</strong> para envío gratis
           </p>
           <div className="mt-1.5 h-1.5 bg-red-100 overflow-hidden">
             <div
               className="h-full bg-accent-dark transition-all"
-              style={{ width: `${Math.min(100, (total / freeShipGoal) * 100)}%` }}
+              style={{ width: `${freeShip.progreso}%` }}
             />
           </div>
         </div>
       )}
-      {freeShipActive && total >= freeShipGoal && (
+      {freeShip.alcanzado && (
         <div className="px-3 py-2 bg-accent border-b border-accent-dark flex-shrink-0 text-center">
           <p className="text-xs font-bold text-black">🎉 ¡Envío gratis desbloqueado!</p>
         </div>
@@ -108,7 +103,7 @@ export default function CartSidebar({ onClose }) {
                   >
                     <Trash2 size={13} />
                   </button>
-                  <span className="ml-auto text-xs font-bold text-black">{fmt(item.precio * item.cantidad)}</span>
+                  <span className="ml-auto text-xs font-bold text-black">{fmt(item.subtotal)}</span>
                 </div>
               </div>
             </div>

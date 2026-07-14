@@ -121,7 +121,7 @@ export default function OrderCard({ order }) {
                 </div>
               </div>
               <p className="text-sm font-bold text-black flex-shrink-0">
-                {fmt(item.precio * item.cantidad)}
+                {fmt(item.subtotal)}
               </p>
             </div>
           ))}

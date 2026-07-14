@@ -79,7 +79,7 @@ export default function CartItem({ item, onUpdateQty, onRemove }) {
           </div>
           <div className="flex items-center gap-3">
             <span className={`text-sm font-black ${item.isOutOfStock ? 'text-gray-400' : 'text-black'}`}>
-              {fmt(item.precio * item.cantidad)}
+              {fmt(item.subtotal)}
             </span>
             <button
               onClick={() => onRemove(item.key)}

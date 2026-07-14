@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { addItem, clearCarrito, getCarrito, removeItem, updateItem } from '../services/cartService'
-import { getTiendaConfig } from '../services/tiendaConfigService'
 
 const CartContext = createContext(null)
 
@@ -10,25 +9,18 @@ export function CartProvider({ children }) {
   const [cart, setCart] = useState([])
   const [total, setTotal] = useState(0)
   const [count, setCount] = useState(0)
+  const [shipping, setShipping] = useState(0)
+  const [grandTotal, setGrandTotal] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [freeShip, setFreeShip] = useState({ activo: true, desde: 200000 })
-
-  useEffect(() => {
-    let alive = true
-    getTiendaConfig().then((cfg) => {
-      if (!alive) return
-      setFreeShip({
-        activo: cfg?.envio_gratis_activo ?? true,
-        desde: cfg?.envio_gratis_desde ?? 200000,
-      })
-    })
-    return () => { alive = false }
-  }, [])
+  const [freeShip, setFreeShip] = useState({ activo: false, desde: 0, alcanzado: false, faltante: 0, progreso: 0 })
 
   const applyCarrito = (data) => {
     setCart(data.items)
     setTotal(data.total)
     setCount(data.count)
+    setShipping(data.shipping)
+    setGrandTotal(data.grandTotal)
+    setFreeShip(data.freeShip)
   }
 
   useEffect(() => {
@@ -81,7 +73,7 @@ export function CartProvider({ children }) {
   }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, refreshCart, total, count, loading, freeShip }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, grandTotal, count, loading, freeShip }}>
       {children}
     </CartContext.Provider>
   )

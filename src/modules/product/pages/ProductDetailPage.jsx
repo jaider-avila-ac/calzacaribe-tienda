@@ -64,7 +64,6 @@ function productSeoData(product, category) {
   const url = `${origin}/producto/${product.id}`
   const image = (product.imagenes ?? []).map((img) => absoluteUrl(img.url ?? img)).filter(Boolean)
   const basePrice = product.precioFinal ?? product.precio
-  const totalStock = (product.stockVariantes ?? []).reduce((sum, item) => sum + Number(item.stock ?? 0), 0)
   const description = plainText(product.descripcion, `${product.nombre} en Calzacaribe.`)
 
   return {
@@ -87,7 +86,7 @@ function productSeoData(product, category) {
         url,
         priceCurrency: 'COP',
         price: String(basePrice),
-        availability: productAvailability(totalStock),
+        availability: productAvailability(product.stockTotal),
         itemCondition: 'https://schema.org/NewCondition',
       },
     },
@@ -222,12 +221,8 @@ export default function ProductDetailPage() {
     setEnviandoResena(true)
     setErrorResena('')
     try {
-      const nueva = await crearResena(product.id, { calificacion: formCalificacion, cuerpo: formComentario })
-      setResenas((prev) => {
-        const items = [nueva, ...prev.items]
-        const promedio = Math.round((items.reduce((s, r) => s + r.calificacion, 0) / items.length) * 10) / 10
-        return { ratingPromedio: promedio, totalResenas: items.length, items }
-      })
+      await crearResena(product.id, { calificacion: formCalificacion, cuerpo: formComentario })
+      setResenas(await getResenas(product.id))
       setEstadoResena((prev) => ({ ...prev, yaReseno: true }))
       setFormCalificacion(0)
       setFormComentario('')
@@ -569,7 +564,7 @@ export default function ProductDetailPage() {
                         {opcion.valor}
                         {opcion.precioExtra > 0 && !isOut && (
                           <span className="block text-[9px] leading-none text-green-600">
-                            +{opcion.precioExtra / 1000}k
+                            +{fmt(opcion.precioExtra)}
                           </span>
                         )}
                       </button>
@@ -701,20 +696,16 @@ export default function ProductDetailPage() {
                       <p className="text-xs text-gray-400 mt-1">{totalResenas} reseñas</p>
                     </div>
                     <div className="flex-1 space-y-1.5">
-                      {[5, 4, 3, 2, 1].map((n) => {
-                        const cantidad = listaResenas.filter((r) => r.calificacion === n).length
-                        const w = Math.round((cantidad / totalResenas) * 100)
-                        return (
-                          <div key={n} className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 w-3">{n}</span>
+                      {resenas.distribucion.map(({ estrellas, porcentaje }) => (
+                          <div key={estrellas} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500 w-3">{estrellas}</span>
                             <Star size={10} className="text-amber-400 fill-amber-400 flex-shrink-0" />
                             <div className="flex-1 h-1.5 bg-gray-100 overflow-hidden">
-                              <div className="h-full bg-amber-400 " style={{ width: `${w}%` }} />
+                              <div className="h-full bg-amber-400 " style={{ width: `${porcentaje}%` }} />
                             </div>
-                            <span className="text-xs text-gray-400 w-7">{w}%</span>
+                            <span className="text-xs text-gray-400 w-7">{porcentaje}%</span>
                           </div>
-                        )
-                      })}
+                      ))}
                     </div>
                   </div>
                   <hr className="border-gray-100" />

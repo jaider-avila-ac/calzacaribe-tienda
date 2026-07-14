@@ -23,6 +23,7 @@ function normalizeOrder(row) {
       variantes: item.variantes ?? {},
       cantidad: item.cantidad,
       precio: item.precio,
+      subtotal: item.subtotal,
     })),
   }
 }

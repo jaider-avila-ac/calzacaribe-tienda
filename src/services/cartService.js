@@ -12,6 +12,7 @@ function normalizeItem(row) {
     nombre: row.nombre,
     slug: row.slug,
     precio: row.precio,
+    subtotal: row.subtotal,
     imagen: row.imagen ?? '',
     marca: row.marca,
     talla: row.talla,
@@ -25,7 +26,20 @@ function normalizeItem(row) {
 
 function normalizeCarrito(data) {
   const items = Array.isArray(data?.items) ? data.items.map(normalizeItem) : []
-  return { items, count: data?.count ?? 0, total: data?.total ?? 0 }
+  return {
+    items,
+    count: data?.count ?? 0,
+    total: data?.total ?? 0,
+    shipping: data?.envio ?? 0,
+    grandTotal: data?.total_con_envio ?? 0,
+    freeShip: {
+      activo: data?.envio_gratis_activo ?? false,
+      desde: data?.envio_gratis_desde ?? 0,
+      alcanzado: data?.envio_gratis_alcanzado ?? false,
+      faltante: data?.faltante_envio_gratis ?? 0,
+      progreso: data?.progreso_envio_gratis ?? 0,
+    },
+  }
 }
 
 export async function getCarrito() {

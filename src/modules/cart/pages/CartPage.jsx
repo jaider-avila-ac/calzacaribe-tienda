@@ -11,14 +11,11 @@ import FormField from '../../../components/ui/FormField'
 import FormInput from '../../../components/ui/FormInput'
 import CartItem from '../components/CartItem'
 
-const SHIP_COST = 12000
-
 const CARD_EMPTY = { numero: '', mes: '', anio: '', cvc: '', titular: '' }
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, count, loading: cartLoading, freeShip } = useCart()
+  const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, grandTotal, count, loading: cartLoading, freeShip } = useCart()
   const freeShipActive = freeShip.activo
-  const freeShipGoal = freeShip.desde
   const navigate = useNavigate()
 
   const [direcciones, setDirecciones] = useState([])
@@ -107,9 +104,6 @@ export default function CartPage() {
 
   const canSubmit = canCheckout && !processing && (metodo === 'wompi' || (cardValid && acceptanceTokens))
 
-  const shipping = !freeShipActive ? SHIP_COST : (total >= freeShipGoal ? 0 : SHIP_COST)
-  const grandTotal = total + shipping
-
   const setCardField = (key) => (e) => setCard((prev) => ({ ...prev, [key]: e.target.value }))
 
   const handlePagarWompi = async () => {
@@ -183,7 +177,7 @@ export default function CartPage() {
     'Pedido Calzacaribe\n\n' +
     cart.map((i) => {
       const vars = Object.entries(i.variantes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')
-      return `• ${i.nombre}${vars ? ` (${vars})` : ''} ×${i.cantidad} → ${fmt(i.precio * i.cantidad)}`
+      return `• ${i.nombre}${vars ? ` (${vars})` : ''} ×${i.cantidad} → ${fmt(i.subtotal)}`
     }).join('\n') +
     `\n\nSubtotal: ${fmt(total)}\nEnvío: ${shipping === 0 ? 'Gratis' : fmt(shipping)}\nTotal: ${fmt(grandTotal)}`
   )
@@ -212,22 +206,22 @@ export default function CartPage() {
           </div>
         )}
 
-        {freeShipActive && total < freeShipGoal && (
+        {freeShipActive && !freeShip.alcanzado && (
           <div className="bg-red-50 border border-red-200 p-3 flex items-center gap-3">
             <div className="flex-1">
               <p className="text-xs font-semibold text-black">
-                Agrega {fmt(freeShipGoal - total)} más y obtén envío gratis
+                Agrega {fmt(freeShip.faltante)} más y obtén envío gratis
               </p>
               <div className="mt-1.5 h-1.5 bg-red-100 overflow-hidden">
                 <div
                   className="h-full bg-accent-dark transition-all"
-                  style={{ width: `${Math.min(100, (total / freeShipGoal) * 100)}%` }}
+                  style={{ width: `${freeShip.progreso}%` }}
                 />
               </div>
             </div>
           </div>
         )}
-        {freeShipActive && total >= freeShipGoal && (
+        {freeShip.alcanzado && (
           <div className="bg-accent p-3 text-center">
             <p className="text-xs font-bold text-black">¡Tienes envío gratis!</p>
           </div>
