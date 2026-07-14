@@ -136,16 +136,6 @@ export function getTotalProductStock(productId) {
     .reduce((s, [, v]) => s + v, 0)
 }
 
-/** Descuenta el stock de cada ítem del pedido. Se llama al confirmar compra. */
-export function deductStock(items) {
-  const map = initStock()
-  items.forEach((item) => {
-    const key = buildKey(item.productId, item.variantes)
-    if (key) map[key] = Math.max(0, (map[key] ?? 0) - item.cantidad)
-  })
-  localStorage.setItem(KEY, JSON.stringify(map))
-}
-
 // ── Validación en tiempo real contra la API ──────────────────────────────────
 
 /** Valida los ítems del carrito contra el stock real en la DB.

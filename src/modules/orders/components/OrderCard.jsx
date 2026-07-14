@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, Truck } from 'lucide-react'
 import { fmt } from '../../../utils/format'
 import StatusStepper from './StatusStepper'
 
@@ -58,6 +58,20 @@ export default function OrderCard({ order }) {
       <div className="px-4 sm:px-5 pb-4 overflow-x-auto no-scrollbar">
         <StatusStepper estado={order.estado} />
       </div>
+
+      {/* Link de seguimiento */}
+      {order.linkSeguimiento && (
+        <div className="px-4 sm:px-5 pb-3">
+          <a
+            href={order.linkSeguimiento}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-black border border-gray-200 px-3 py-1.5 hover:border-black transition-colors"
+          >
+            <Truck size={13} /> Rastrear pedido
+          </a>
+        </div>
+      )}
 
       {/* Miniaturas */}
       <div className="px-4 sm:px-5 pb-3 flex gap-2 overflow-x-auto no-scrollbar">

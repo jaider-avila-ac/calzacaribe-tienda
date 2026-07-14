@@ -1,20 +1,24 @@
-﻿import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ShoppingBag, AlertCircle, MapPin, ChevronRight, Loader2 } from 'lucide-react'
+import { ShoppingBag, AlertCircle, MapPin, ChevronRight, Loader2, CreditCard, ExternalLink } from 'lucide-react'
 import { useCart } from '../../../context/CartContext'
-import { useOrders } from '../../../context/OrdersContext'
 import { getStock, validateCart } from '../../../services/stockService'
 import { getProfile } from '../../../services/profileService'
+import { pedidoService } from '../../../services/pedidoService'
+import { getAcceptanceTokens, tokenizeCard } from '../../../services/wompiService'
 import { fmt } from '../../../utils/format'
+import FormField from '../../../components/ui/FormField'
+import FormInput from '../../../components/ui/FormInput'
 import CartItem from '../components/CartItem'
 
 const SHIP_COST = 12000
 
+const CARD_EMPTY = { numero: '', mes: '', anio: '', cvc: '', titular: '' }
+
 export default function CartPage() {
-  const { cart, removeFromCart, updateQty, clearCart, total, count, loading: cartLoading, freeShip } = useCart()
+  const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, count, loading: cartLoading, freeShip } = useCart()
   const freeShipActive = freeShip.activo
   const freeShipGoal = freeShip.desde
-  const { addOrder } = useOrders()
   const navigate = useNavigate()
 
   const [direcciones, setDirecciones] = useState([])
@@ -25,6 +29,15 @@ export default function CartPage() {
   // Validación de stock en tiempo real contra la API
   const [apiValidation, setApiValidation] = useState(null)
   const [validating, setValidating] = useState(false)
+
+  // Pago
+  const [metodo, setMetodo] = useState('wompi') // 'wompi' (ventana hospedada) | 'tarjeta' (tokenizada)
+  const [acceptanceTokens, setAcceptanceTokens] = useState(null)
+  const [card, setCard] = useState(CARD_EMPTY)
+  const [acceptTerms, setAcceptTerms] = useState(false)
+  const [acceptDatos, setAcceptDatos] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [paymentError, setPaymentError] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -38,6 +51,12 @@ export default function CartPage() {
       .catch(() => {
         if (alive) setDirecciones([])
       })
+    return () => { alive = false }
+  }, [])
+
+  useEffect(() => {
+    let alive = true
+    getAcceptanceTokens().then((data) => { if (alive) setAcceptanceTokens(data) }).catch(() => {})
     return () => { alive = false }
   }, [])
 
@@ -78,14 +97,65 @@ export default function CartPage() {
   const hasCartIssues = cartValidated.some((i) => i.isOutOfStock || i.isOverStock)
   const canCheckout = !hasCartIssues && !validating && selectedDir !== null && hasDocumento
 
+  const cardValid =
+    card.numero.replace(/\s+/g, '').length >= 13 &&
+    /^\d{2}$/.test(card.mes) &&
+    /^\d{2}$/.test(card.anio) &&
+    /^\d{3,4}$/.test(card.cvc) &&
+    card.titular.trim().length > 0 &&
+    acceptTerms && acceptDatos
+
+  const canSubmit = canCheckout && !processing && (metodo === 'wompi' || (cardValid && acceptanceTokens))
+
   const shipping = !freeShipActive ? SHIP_COST : (total >= freeShipGoal ? 0 : SHIP_COST)
   const grandTotal = total + shipping
 
-  const handleCheckout = async () => {
-    if (!canCheckout) return
-    addOrder({ items: cart, subtotal: total, envio: shipping, total: grandTotal, direccion: selectedDir })
-    await clearCart()
-    navigate('/mis-compras')
+  const setCardField = (key) => (e) => setCard((prev) => ({ ...prev, [key]: e.target.value }))
+
+  const handlePagarWompi = async () => {
+    setProcessing(true)
+    setPaymentError('')
+    try {
+      const data = await pedidoService.checkoutHospedado(selectedDir.id)
+      window.location.href = data.checkout_url
+    } catch (err) {
+      setPaymentError(err.message || 'No se pudo iniciar el pago. Intenta de nuevo.')
+      setProcessing(false)
+    }
+  }
+
+  const handlePagarTarjeta = async () => {
+    setProcessing(true)
+    setPaymentError('')
+    try {
+      const cardToken = await tokenizeCard(
+        { number: card.numero, cvc: card.cvc, expMonth: card.mes, expYear: card.anio, cardHolder: card.titular },
+        acceptanceTokens.wompi_base_url,
+        acceptanceTokens.public_key,
+      )
+      const data = await pedidoService.checkoutTarjeta({
+        direccionId: selectedDir.id,
+        cardToken,
+        acceptanceToken: acceptanceTokens.acceptance_token,
+        personalAuthToken: acceptanceTokens.personal_auth_token,
+      })
+      if (data.status === 'DECLINED') {
+        setPaymentError(data.mensaje)
+        setProcessing(false)
+        return
+      }
+      await refreshCart()
+      navigate(`/pedido/resultado?numero=${data.numero}`)
+    } catch (err) {
+      setPaymentError(err.message || 'No se pudo procesar el pago. Intenta de nuevo.')
+      setProcessing(false)
+    }
+  }
+
+  const handleCheckout = () => {
+    if (!canSubmit) return
+    if (metodo === 'wompi') handlePagarWompi()
+    else handlePagarTarjeta()
   }
 
   if (cartLoading) {
@@ -247,17 +317,97 @@ export default function CartPage() {
             <span className="text-xl font-black text-black">{fmt(grandTotal)}</span>
           </div>
 
+          {/* Método de pago */}
+          <div className="border-t border-gray-100 pt-3 space-y-2.5">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Método de pago</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMetodo('wompi')}
+                className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold border transition-colors ${
+                  metodo === 'wompi' ? 'border-black bg-gray-50' : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                }`}
+              >
+                <ExternalLink size={13} /> Pagar con Wompi
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetodo('tarjeta')}
+                className={`flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold border transition-colors ${
+                  metodo === 'tarjeta' ? 'border-black bg-gray-50' : 'border-gray-200 text-gray-500 hover:border-gray-400'
+                }`}
+              >
+                <CreditCard size={13} /> Pagar con tarjeta
+              </button>
+            </div>
+
+            {metodo === 'wompi' && (
+              <p className="text-[11px] text-gray-400">
+                Se abrirá la ventana segura de Wompi (tarjeta, PSE, Nequi y más).
+              </p>
+            )}
+
+            {metodo === 'tarjeta' && (
+              <div className="space-y-2.5 pt-1">
+                <FormField label="Número de tarjeta">
+                  <FormInput value={card.numero} onChange={setCardField('numero')} placeholder="4242 4242 4242 4242" />
+                </FormField>
+                <div className="grid grid-cols-3 gap-2">
+                  <FormField label="Mes">
+                    <FormInput value={card.mes} onChange={setCardField('mes')} placeholder="08" maxLength={2} />
+                  </FormField>
+                  <FormField label="Año">
+                    <FormInput value={card.anio} onChange={setCardField('anio')} placeholder="28" maxLength={2} />
+                  </FormField>
+                  <FormField label="CVV">
+                    <FormInput value={card.cvc} onChange={setCardField('cvc')} placeholder="123" maxLength={4} />
+                  </FormField>
+                </div>
+                <FormField label="Titular de la tarjeta">
+                  <FormInput value={card.titular} onChange={setCardField('titular')} placeholder="Como aparece en la tarjeta" />
+                </FormField>
+
+                {acceptanceTokens ? (
+                  <div className="space-y-1.5 pt-1">
+                    <label className="flex items-start gap-2 text-[11px] text-gray-500">
+                      <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} className="mt-0.5 accent-black" />
+                      Acepto los{' '}
+                      <a href={acceptanceTokens.acceptance_permalink} target="_blank" rel="noopener noreferrer" className="underline">
+                        términos y condiciones
+                      </a>{' '}de Wompi
+                    </label>
+                    <label className="flex items-start gap-2 text-[11px] text-gray-500">
+                      <input type="checkbox" checked={acceptDatos} onChange={(e) => setAcceptDatos(e.target.checked)} className="mt-0.5 accent-black" />
+                      Autorizo el{' '}
+                      <a href={acceptanceTokens.personal_auth_permalink} target="_blank" rel="noopener noreferrer" className="underline">
+                        tratamiento de mis datos personales
+                      </a>
+                    </label>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-amber-600">Cargando datos de pago…</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {paymentError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-xs text-red-700">{paymentError}</div>
+          )}
+
           <button
             onClick={handleCheckout}
-            disabled={!canCheckout}
+            disabled={!canSubmit}
             className={`w-full py-3.5 font-bold text-sm transition-colors active:scale-95 flex items-center justify-center gap-2 ${
-              !canCheckout
+              !canSubmit
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : 'bg-black text-white hover:bg-gray-800'
             }`}
           >
             {validating
               ? <><Loader2 size={15} className="animate-spin" /> Verificando stock…</>
+              : processing
+              ? <><Loader2 size={15} className="animate-spin" /> Procesando pago…</>
               : 'Finalizar compra'
             }
           </button>

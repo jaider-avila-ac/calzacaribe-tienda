@@ -4,7 +4,15 @@ import { useOrders } from '../../../context/OrdersContext'
 import OrderCard from '../components/OrderCard'
 
 export default function MisComprasPage() {
-  const { orders } = useOrders()
+  const { orders, loading } = useOrders()
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-20 text-center text-sm text-gray-400">
+        Cargando tus compras…
+      </div>
+    )
+  }
 
   if (orders.length === 0) {
     return (

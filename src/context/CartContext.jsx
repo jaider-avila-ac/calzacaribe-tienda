@@ -72,8 +72,16 @@ export function CartProvider({ children }) {
     applyCarrito(data)
   }
 
+  // Tras un pago aprobado el backend ya vació carrito_items por su cuenta
+  // (ver PagoConfirmacionService) — esto solo refresca el estado local para reflejarlo.
+  const refreshCart = async () => {
+    if (!isAuthenticated) return
+    const data = await getCarrito()
+    applyCarrito(data)
+  }
+
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, total, count, loading, freeShip }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, refreshCart, total, count, loading, freeShip }}>
       {children}
     </CartContext.Provider>
   )

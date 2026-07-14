@@ -16,6 +16,7 @@ import CatalogPage from './modules/catalog/pages/CatalogPage'
 import ProductDetailPage from './modules/product/pages/ProductDetailPage'
 import CartPage from './modules/cart/pages/CartPage'
 import MisComprasPage from './modules/orders/pages/MisComprasPage'
+import PedidoResultadoPage from './modules/orders/pages/PedidoResultadoPage'
 import ConfiguracionPage from './modules/profile/pages/ConfiguracionPage'
 import NotificationsPage from './modules/notifications/pages/NotificationsPage'
 import FavoritesPage from './modules/favorites/pages/FavoritesPage'
@@ -52,6 +53,7 @@ export default function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="carrito" element={<CartPage />} />
                 <Route path="mis-compras" element={<MisComprasPage />} />
+                <Route path="pedido/resultado" element={<PedidoResultadoPage />} />
                 <Route path="configuracion" element={<ConfiguracionPage />} />
                 <Route path="notificaciones" element={<NotificationsPage />} />
                 <Route path="favoritos" element={<FavoritesPage />} />
