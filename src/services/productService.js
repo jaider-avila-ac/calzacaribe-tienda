@@ -2,7 +2,7 @@ import { fetchPublic } from './api'
 import { getPersisted, setPersisted } from '../utils/persistentCache'
 
 // Adapta la respuesta de la API pública al formato que espera la tienda
-function adaptProduct(p) {
+export function adaptProduct(p) {
   return {
     id:             p.id,
     nombre:         p.nombre,

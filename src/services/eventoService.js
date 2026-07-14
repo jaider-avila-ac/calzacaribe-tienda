@@ -1,5 +1,6 @@
 import { fetchAuth } from './api'
 import { tokenStore } from './tokenStore'
+import { adaptProduct } from './productService'
 
 // Solo registra si el usuario está logueado
 export async function registrarEvento(tipo, entidadTipo, entidadId) {
@@ -17,7 +18,8 @@ export async function registrarEvento(tipo, entidadTipo, entidadId) {
 export async function getRecientesDB(limit = 8) {
   if (!tokenStore.isLoggedIn()) return []
   try {
-    return await fetchAuth(`/eventos/recientes?limit=${limit}`)
+    const data = await fetchAuth(`/eventos/recientes?limit=${limit}`)
+    return Array.isArray(data) ? data.map(adaptProduct) : []
   } catch {
     return []
   }
