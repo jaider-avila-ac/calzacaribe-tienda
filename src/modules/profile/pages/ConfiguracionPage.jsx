@@ -201,7 +201,7 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
               <FormInput
                 value={form.contactoTelefono}
                 onChange={set('contactoTelefono')}
-                placeholder="310 2144184"
+                placeholder="300 1234567"
                 className="border-l-0"
               />
             </div>
