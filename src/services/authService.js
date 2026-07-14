@@ -1,3 +1,5 @@
+import { tokenStore } from './tokenStore'
+
 const BASE  = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/public/auth/tienda`
 const TND   = '1'
 
@@ -10,6 +12,17 @@ async function post(path, body) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw Object.assign(new Error(data.message ?? 'Error'), { status: res.status, data })
   return data
+}
+
+// El logout necesita el Bearer del propio token que se está cerrando para poder
+// invalidarlo en el backend (ver JwtService.invalidate) — post() no lo agrega.
+async function logout() {
+  const token = tokenStore.getToken()
+  if (!token) return
+  await fetch(`${BASE}/logout`, {
+    method: 'POST',
+    headers: { 'X-Tenant-Id': TND, Authorization: `Bearer ${token}` },
+  }).catch(() => {})
 }
 
 export const authService = {
@@ -37,4 +50,6 @@ export const authService = {
 
   resetPassword:  (code, newPassword) =>
     post('/reset-password', { code, new_password: newPassword }),
+
+  logout,
 }

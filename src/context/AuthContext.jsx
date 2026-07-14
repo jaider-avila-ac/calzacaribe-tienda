@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { tokenStore } from '../services/tokenStore'
+import { authService } from '../services/authService'
 
 const AuthCtx = createContext(null)
 
@@ -13,7 +14,10 @@ export function AuthProvider({ children }) {
     setIsAuthenticated(tokenStore.isLoggedIn())
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    // Invalida el token en el backend (best-effort) antes de borrarlo localmente —
+    // si no, seguiría siendo válido hasta su vencimiento aunque alguien más lo tuviera.
+    await authService.logout()
     tokenStore.clear()
     setUser(null)
     setIsAuthenticated(false)

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { AlertCircle, Check, Eye, EyeOff, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { AlertCircle, Check, Eye, EyeOff, LogOut, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
 import FormField from '../../../components/ui/FormField'
 import FormInput from '../../../components/ui/FormInput'
 import FormSelect from '../../../components/ui/FormSelect'
@@ -12,6 +13,7 @@ import {
   updateDireccion,
 } from '../../../services/profileService'
 import { DEPARTAMENTOS, municipiosDe } from '../../../data/colombiaGeo'
+import { useAuth } from '../../../context/AuthContext'
 
 const TIPOS_DOC = ['CC', 'CE', 'TI', 'NIT', 'Pasaporte']
 
@@ -394,6 +396,31 @@ function ContrasenaSection() {
   )
 }
 
+function CerrarSesionSection() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    await logout()
+    navigate('/', { replace: true })
+  }
+
+  return (
+    <SectionCard title="Sesión">
+      <button
+        type="button"
+        onClick={handleLogout}
+        disabled={loggingOut}
+        className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold border border-gray-200 text-black hover:border-black transition-colors active:scale-95 disabled:opacity-60"
+      >
+        <LogOut size={15} /> {loggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
+      </button>
+    </SectionCard>
+  )
+}
+
 export default function ConfiguracionPage() {
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
@@ -444,6 +471,7 @@ export default function ConfiguracionPage() {
               onDireccionesSaved={handleDireccionesSaved}
             />
             <ContrasenaSection />
+            <CerrarSesionSection />
           </>
         )}
       </div>
