@@ -40,6 +40,8 @@ export default function OrderCard({ order }) {
   const badge = ESTADO_BADGE[order.estado] ?? 'bg-gray-100 text-gray-600'
 
   const puedeConfirmar = ESTADOS_CONFIRMABLES.has(order.estado) && !order.confirmadoClienteEn
+  const mostrarCodigo = order.codigoRastreo && order.mostrarSeguimiento !== 'link'
+  const mostrarLink = order.linkSeguimiento && order.mostrarSeguimiento !== 'codigo'
 
   const handleConfirmarRecibido = async () => {
     setConfirmando(true)
@@ -80,10 +82,16 @@ export default function OrderCard({ order }) {
         <StatusStepper estado={order.estado} />
       </div>
 
-      {/* Link de seguimiento + confirmar recibido */}
-      {(order.linkSeguimiento || puedeConfirmar || order.confirmadoClienteEn) && (
+      {/* Transportadora, código de rastreo y/o link + confirmar recibido */}
+      {(mostrarCodigo || mostrarLink || puedeConfirmar || order.confirmadoClienteEn) && (
         <div className="px-4 sm:px-5 pb-3 flex flex-wrap items-center gap-2">
-          {order.linkSeguimiento && (
+          {mostrarCodigo && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 border border-gray-200 px-3 py-1.5">
+              <Truck size={13} />
+              {order.transportadora ? `${order.transportadora}: ` : ''}{order.codigoRastreo}
+            </span>
+          )}
+          {mostrarLink && (
             <a
               href={order.linkSeguimiento}
               target="_blank"
