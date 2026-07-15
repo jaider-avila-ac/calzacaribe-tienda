@@ -5,6 +5,7 @@ import { fmt } from '../../../utils/format'
 import { pedidoService } from '../../../services/pedidoService'
 import { useOrders } from '../../../context/OrdersContext'
 import StatusStepper from './StatusStepper'
+import DevolucionPanel from './DevolucionPanel'
 
 const ESTADOS_CONFIRMABLES = new Set(['enviado', 'entregado'])
 
@@ -126,6 +127,8 @@ export default function OrderCard({ order }) {
       {errorConfirmar && (
         <p className="px-4 sm:px-5 pb-3 text-xs text-red-600">{errorConfirmar}</p>
       )}
+
+      <DevolucionPanel numero={order.id} estadoPedido={order.estado} />
 
       {/* Miniaturas */}
       <div className="px-4 sm:px-5 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
