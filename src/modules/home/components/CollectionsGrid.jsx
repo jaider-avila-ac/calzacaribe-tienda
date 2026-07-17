@@ -14,6 +14,9 @@ export default function CollectionsGrid() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 pt-10">
+      <div className="mb-4">
+        <h2 className="text-base font-black text-black">Colecciones destacadas</h2>
+      </div>
       <div className={`grid gap-3 ${colecciones.length === 1 ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
         {colecciones.map((col) => (
           <Link

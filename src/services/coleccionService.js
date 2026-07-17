@@ -1,4 +1,5 @@
 import { fetchPublic } from './api'
+import { adaptProduct } from './productService'
 
 function adapt(c) {
   return {
@@ -21,4 +22,9 @@ export async function getColecciones() {
 export async function getColeccionById(id) {
   const data = await fetchPublic(`/colecciones/${id}`)
   return adapt(data)
+}
+
+export async function getProductosDeColeccion(id) {
+  const data = await fetchPublic(`/colecciones/${id}/productos`)
+  return Array.isArray(data) ? data.map(adaptProduct) : []
 }

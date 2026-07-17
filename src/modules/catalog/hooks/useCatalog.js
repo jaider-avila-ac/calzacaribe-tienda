@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getProducts, getProductsPage } from '../../../services/productService'
+import { getProductosDeColeccion } from '../../../services/coleccionService'
 
 const PAGE_SIZE = 24
 
 export function useCatalog() {
   const [params, setParams] = useSearchParams()
 
+  const coleccionId   = params.get('coleccion')   ? Number(params.get('coleccion')) : null
   const categoriaId   = params.get('categoria')   ? Number(params.get('categoria')) : null
   const subcategoria  = params.get('subcategoria') ?? ''
   const genero        = params.get('genero')       ?? ''
@@ -20,14 +22,29 @@ export function useCatalog() {
   const [allLoading, setAllLoading] = useState(true)
 
   useEffect(() => {
-    if (categoriaId) return
+    if (categoriaId || coleccionId) return
     let alive = true
     getProducts()
       .then((data) => { if (alive) setAllProducts(Array.isArray(data) ? data : []) })
       .catch(() => { if (alive) setAllProducts([]) })
       .finally(() => { if (alive) setAllLoading(false) })
     return () => { alive = false }
-  }, [categoriaId])
+  }, [categoriaId, coleccionId])
+
+  // ── Colección: lista curada de productos, un solo fetch (no pagina) ──
+  const [coleccionProducts, setColeccionProducts] = useState([])
+  const [coleccionLoading, setColeccionLoading] = useState(true)
+
+  useEffect(() => {
+    if (!coleccionId) return
+    let alive = true
+    setColeccionLoading(true)
+    getProductosDeColeccion(coleccionId)
+      .then((data) => { if (alive) setColeccionProducts(Array.isArray(data) ? data : []) })
+      .catch(() => { if (alive) setColeccionProducts([]) })
+      .finally(() => { if (alive) setColeccionLoading(false) })
+    return () => { alive = false }
+  }, [coleccionId])
 
   // ── Dentro de una categoría: scroll infinito paginado contra el backend,
   // en vez de traer todo el catálogo de una sola vez ──
@@ -71,9 +88,9 @@ export function useCatalog() {
       .finally(() => setLoadingMore(false))
   }, [categoriaId, pageNum, totalPages, loadingMore, pageLoading])
 
-  const items   = categoriaId ? pageItems   : allProducts
-  const loading = categoriaId ? pageLoading : allLoading
-  const hasMore = Boolean(categoriaId) && pageNum + 1 < totalPages
+  const items   = coleccionId ? coleccionProducts : (categoriaId ? pageItems   : allProducts)
+  const loading = coleccionId ? coleccionLoading  : (categoriaId ? pageLoading : allLoading)
+  const hasMore = Boolean(categoriaId) && !coleccionId && pageNum + 1 < totalPages
 
   const categoryProducts = useMemo(() => items.filter((p) => p.activo), [items])
 
@@ -126,6 +143,7 @@ export function useCatalog() {
     clearFilters,
     sort,
     categoriaId,
+    coleccionId,
     subcategoria,
     genero,
     etiqueta,

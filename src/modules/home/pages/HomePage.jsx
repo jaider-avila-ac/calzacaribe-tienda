@@ -171,9 +171,6 @@ export default function HomePage() {
       {/* ── Hero ── */}
       <BannerHero banners={heroBanners} />
 
-      {/* ── Colecciones ── */}
-      <CollectionsGrid />
-
       {!backendOnline && (
         <div className="max-w-7xl mx-auto px-4 pt-10">
           <p className="text-sm text-gray-500 text-center bg-gray-50 py-4">
@@ -224,6 +221,9 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ── Colecciones — lejos del hero y del carrusel de productos ── */}
+      <CollectionsGrid />
 
       {/* ── Secciones por categoría (ordenadas por actividad del usuario) ── */}
       {sortedCategories.map((cat) => {

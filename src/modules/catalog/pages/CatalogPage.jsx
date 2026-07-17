@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ChevronDown, Search, X, ChevronRight, Loader2 } from 'lucide-react'
 import { useCatalog } from '../hooks/useCatalog'
 import { getCategoryById } from '../../../services/categoryService'
+import { getColeccionById } from '../../../services/coleccionService'
 import ProductCard from '../../../components/ui/ProductCard'
 
 const SORT_OPTIONS = [
@@ -30,12 +31,14 @@ export default function CatalogPage() {
     clearFilters,
     sort,
     categoriaId,
+    coleccionId,
     subcategoria,
     genero,
     etiqueta,
     soloDescuento,
   } = useCatalog()
   const [activeCategory, setActiveCategory] = useState(null)
+  const [activeColeccion, setActiveColeccion] = useState(null)
   const sentinelRef = useRef(null)
 
   // Scroll infinito: cuando el centinela al fondo de la grilla entra en pantalla,
@@ -60,6 +63,14 @@ export default function CatalogPage() {
     }
   }, [categoriaId])
 
+  useEffect(() => {
+    if (coleccionId) {
+      getColeccionById(coleccionId).then(setActiveColeccion).catch(() => setActiveColeccion(null))
+    } else {
+      setActiveColeccion(null)
+    }
+  }, [coleccionId])
+
   const activeSub = params.get('subcategoria') ?? ''
   const hasRefinements = Boolean(subcategoria || genero || etiqueta || soloDescuento)
 
@@ -77,10 +88,11 @@ export default function CatalogPage() {
   // La imagen propia de la categoría llega casi al instante (viene de /categorias,
   // que se cachea en el módulo) — se prioriza sobre la aleatoria de productos,
   // que depende de cargar el catálogo completo y por eso aparecía tarde.
-  const bannerImg = activeCategory?.imagenUrl || randomBannerImg
+  const bannerImg = activeColeccion?.imagenUrl || activeCategory?.imagenUrl || randomBannerImg
 
   let pageTitle = 'Todo el catálogo'
   if (soloDescuento) pageTitle = 'Ofertas'
+  else if (activeColeccion) pageTitle = activeColeccion.nombre
   else if (activeCategory) pageTitle = activeCategory.nombre
 
   return (
