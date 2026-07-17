@@ -34,7 +34,7 @@ export default function Navbar() {
         <div className="hidden lg:flex items-center h-[72px] max-w-7xl mx-auto px-6 gap-0">
 
           {/* Logo */}
-          <Link to="/catalogo" className="flex items-center flex-shrink-0 mr-8">
+          <Link to="/" className="flex items-center flex-shrink-0 mr-8">
             <img src="/logos/imagotico-calzacaribe.svg" alt="Calzacaribe" className="h-8" />
           </Link>
 
@@ -131,7 +131,7 @@ export default function Navbar() {
               <AlignJustify size={22} />
             </button>
 
-            <Link to="/catalogo" className="flex items-center flex-shrink-0">
+            <Link to="/" className="flex items-center flex-shrink-0">
               <img src="/logos/imagotico-calzacaribe.svg" alt="Calzacaribe" className="h-6" />
             </Link>
 

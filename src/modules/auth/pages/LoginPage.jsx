@@ -147,9 +147,9 @@ export default function LoginPage() {
         <div className="w-full max-w-[380px] flex flex-col gap-6">
 
           {/* Logo */}
-          <div className="flex justify-center">
+          <Link to="/" className="flex justify-center">
             <img src="/logos/imagotico-calzacaribe.svg" alt="Calzacaribe" className="h-14" style={{ filter: 'invert(1)' }} />
-          </div>
+          </Link>
 
           {/* Error */}
           {error && (
