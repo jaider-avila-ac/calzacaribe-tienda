@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, ChevronDown, ChevronUp, Loader2, PackageCheck, Truck } from 'lucide-react'
+import { CheckCircle2, ChevronDown, ChevronUp, Loader2, MessageSquareWarning, PackageCheck, Truck } from 'lucide-react'
 import { fmt } from '../../../utils/format'
 import { pedidoService } from '../../../services/pedidoService'
 import { useOrders } from '../../../context/OrdersContext'
@@ -8,6 +8,20 @@ import StatusStepper from './StatusStepper'
 import DevolucionPanel from './DevolucionPanel'
 
 const ESTADOS_CONFIRMABLES = new Set(['enviado', 'entregado'])
+
+const MOTIVO_CANCELACION_LABEL = {
+  producto_agotado: 'Producto agotado',
+  producto_inconveniente: 'Producto con inconvenientes',
+  error_precio: 'Error en el precio o la publicación',
+  envio_imposible: 'Imposibilidad de realizar el envío',
+  compra_duplicada: 'Compra duplicada',
+  acordado_cliente: 'Solicitud acordada contigo',
+  otro: 'Otro motivo',
+}
+
+const METODO_PAGO_LABEL = { CARD: 'tarjeta', NEQUI: 'Nequi', PSE: 'PSE', BANCOLOMBIA_TRANSFER: 'transferencia Bancolombia', EFECTIVO: 'efectivo', OTRO: 'el método usado' }
+
+const REEMBOLSO_ESTADO_LABEL = { pendiente: 'Pendiente', en_proceso: 'En proceso', completado: 'Completado', rechazado: 'Rechazado', error: 'Requiere revisión' }
 
 const ESTADO_BADGE = {
   pagado: 'bg-blue-100 text-blue-700',
@@ -82,6 +96,34 @@ export default function OrderCard({ order }) {
       <div className="px-4 sm:px-5 pb-4 overflow-x-auto no-scrollbar">
         <StatusStepper estado={order.estado} />
       </div>
+
+      {/* Mensaje de la tienda — solo si fue cancelado por el admin (con motivo real, a
+          diferencia de un "cancelado" por pago rechazado, que no tiene cancelMotivo) */}
+      {order.estado === 'cancelado' && order.cancelMotivo && (
+        <div className="mx-4 sm:mx-5 mb-4 p-4 bg-red-50 border border-red-100 space-y-1.5">
+          <p className="text-xs font-black text-red-700 flex items-center gap-1.5">
+            <MessageSquareWarning size={14} /> Mensaje de la tienda
+          </p>
+          <p className="text-xs text-red-700">
+            Tu pedido fue cancelado. Motivo: <span className="font-semibold">{MOTIVO_CANCELACION_LABEL[order.cancelMotivo] ?? order.cancelMotivo}</span>
+            {order.cancelMotivoOtro && ` — ${order.cancelMotivoOtro}`}
+          </p>
+          {order.cancelNota && <p className="text-xs text-red-600">{order.cancelNota}</p>}
+          <p className="text-[11px] text-red-400">Cancelado el {formatDate(order.canceladoEn)}</p>
+
+          {order.reembolso && (
+            <div className="pt-1.5 mt-1.5 border-t border-red-200 text-xs text-red-700 space-y-0.5">
+              <p>
+                Reembolso: <span className="font-semibold">{REEMBOLSO_ESTADO_LABEL[order.reembolso.estado] ?? order.reembolso.estado}</span>
+                {' '}({fmt(order.reembolso.monto)}{order.metodoPago ? ` a ${METODO_PAGO_LABEL[order.metodoPago] ?? order.metodoPago}` : ''})
+              </p>
+              {order.reembolso.estado === 'completado' && order.reembolso.confirmadoEn && (
+                <p className="text-red-500">Confirmado el {formatDate(order.reembolso.confirmadoEn)}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Transportadora, código de rastreo y/o link + confirmar recibido */}
       {(mostrarCodigo || mostrarLink || puedeConfirmar || order.confirmadoClienteEn) && (

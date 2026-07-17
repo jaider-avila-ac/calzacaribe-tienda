@@ -19,6 +19,18 @@ function normalizeOrder(row) {
     codigoRastreo: row.codigo_rastreo,
     mostrarSeguimiento: row.mostrar_seguimiento ?? 'ambos',
     confirmadoClienteEn: row.confirmado_cliente_en,
+    cancelMotivo: row.cancel_motivo,
+    cancelMotivoOtro: row.cancel_motivo_otro,
+    cancelNota: row.cancel_nota,
+    canceladoEn: row.cancelado_en,
+    metodoPago: row.metodo_pago,
+    reembolso: row.reembolso ? {
+      estado: row.reembolso.estado,
+      monto: row.reembolso.monto,
+      errorMensaje: row.reembolso.error_mensaje,
+      creadoEn: row.reembolso.creado_en,
+      confirmadoEn: row.reembolso.confirmado_en,
+    } : null,
     direccion: row.dir_snapshot,
     items: (row.items ?? []).map((item) => ({
       productId: item.producto_id,
