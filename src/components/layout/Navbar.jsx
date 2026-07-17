@@ -138,6 +138,19 @@ export default function Navbar() {
             <div className="flex-1" />
 
             <Link
+              to="/notificaciones"
+              className="relative w-9 h-9 flex items-center justify-center text-white/70 hover:text-white flex-shrink-0"
+              aria-label="Notificaciones"
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-600 text-white text-[9px] font-black flex items-center justify-center px-0.5 border border-black">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
               to={isAuthenticated ? '/configuracion' : '/login'}
               className="w-9 h-9 flex items-center justify-center text-white/70 hover:text-white flex-shrink-0"
               aria-label={isAuthenticated ? fullName || firstName : 'Iniciar sesión'}
