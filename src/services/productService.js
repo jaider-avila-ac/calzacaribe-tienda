@@ -42,6 +42,7 @@ export function adaptProduct(p) {
       stock: v.stock ?? 0,
     })),
     stockTotal:      p.stock_total ?? 0,
+    video:           p.video ?? null,
     caracteristicas: p.caracteristicas ?? {},
     ratingPromedio: p.rating_promedio ?? null,
     totalResenas:   p.total_resenas ?? 0,
