@@ -7,6 +7,7 @@ import FormSelect from '../../../components/ui/FormSelect'
 import {
   EMPTY_PROFILE,
   addDireccion,
+  changePassword,
   deleteDireccion,
   getProfile,
   saveProfile,
@@ -343,18 +344,32 @@ function ContrasenaSection() {
   const [form, setForm] = useState({ actual: '', nueva: '', confirmar: '' })
   const [show, setShow] = useState({ actual: false, nueva: false, confirmar: false })
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
   const toggle = (key) => () => setShow((prev) => ({ ...prev, [key]: !prev[key] }))
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     if (!form.actual) return setError('Ingresa tu contraseña actual')
     if (form.nueva.length < 8) return setError('La nueva contraseña debe tener al menos 8 caracteres')
     if (form.nueva !== form.confirmar) return setError('Las contraseñas no coinciden')
-    setError('El cambio de contraseña aún no está disponible')
-    setSaved(false)
+
+    setSaving(true)
+    try {
+      await changePassword({ actual: form.actual, nueva: form.nueva })
+      setForm({ actual: '', nueva: '', confirmar: '' })
+      setSaved(true)
+    } catch (err) {
+      if (err.status === 409) setError('Tu cuenta usa Google — no tiene contraseña que cambiar')
+      else if (err.status === 400) setError(err.message || 'Contraseña actual incorrecta')
+      else setError('No se pudo cambiar la contraseña. Intenta de nuevo')
+      setSaved(false)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -390,7 +405,7 @@ function ContrasenaSection() {
           Mínimo 8 caracteres. Usa letras, números y símbolos para mayor seguridad.
         </p>
         {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
-        <div className="flex justify-end pt-1"><SaveButton saved={saved} saving={false} /></div>
+        <div className="flex justify-end pt-1"><SaveButton saved={saved} saving={saving} /></div>
       </form>
     </SectionCard>
   )

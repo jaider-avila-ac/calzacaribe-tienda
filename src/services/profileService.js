@@ -72,6 +72,13 @@ export async function saveProfile(data) {
   }))
 }
 
+export async function changePassword({ actual, nueva }) {
+  return fetchAuth('/clientes/me/password', {
+    method: 'PUT',
+    body: JSON.stringify({ password_actual: actual, password_nueva: nueva }),
+  })
+}
+
 export async function getDirecciones() {
   const profile = await getProfile()
   return profile.direcciones
