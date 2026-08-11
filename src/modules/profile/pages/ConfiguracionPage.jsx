@@ -340,6 +340,55 @@ function DireccionesSection({ direcciones, onDireccionesSaved }) {
   )
 }
 
+function PreferenciasSection({ profile, onProfileSaved }) {
+  const [aceptaPromo, setAceptaPromo] = useState(profile.aceptaPromo)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    setAceptaPromo(profile.aceptaPromo)
+  }, [profile.aceptaPromo])
+
+  const handleToggle = async (e) => {
+    const nuevoValor = e.target.checked
+    setAceptaPromo(nuevoValor)
+    setSaving(true)
+    setError('')
+    try {
+      const updated = await saveProfile({ ...profile, aceptaPromo: nuevoValor })
+      onProfileSaved(updated)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      setAceptaPromo(profile.aceptaPromo) // revertir si falló
+      setError(err.message || 'No se pudo guardar tu preferencia')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <SectionCard title="Preferencias de comunicación">
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={aceptaPromo}
+          onChange={handleToggle}
+          disabled={saving}
+          className="mt-0.5 w-4 h-4 flex-shrink-0 accent-black"
+        />
+        <span className="text-sm text-gray-600 leading-relaxed">
+          Quiero recibir ofertas y promociones de Calzacaribe. Esto no afecta las notificaciones
+          sobre tus pedidos (confirmación, envío, entrega), que siempre las recibes.
+        </span>
+      </label>
+      {saved && <p className="text-xs text-accent-dark mt-2 flex items-center gap-1"><Check size={12} /> Preferencia guardada</p>}
+      {error && <p className="text-xs text-red-500 mt-2 flex items-center gap-1"><AlertCircle size={12} />{error}</p>}
+    </SectionCard>
+  )
+}
+
 function ContrasenaSection() {
   const [form, setForm] = useState({ actual: '', nueva: '', confirmar: '' })
   const [show, setShow] = useState({ actual: false, nueva: false, confirmar: false })
@@ -485,6 +534,7 @@ export default function ConfiguracionPage() {
               direcciones={profile.direcciones}
               onDireccionesSaved={handleDireccionesSaved}
             />
+            <PreferenciasSection profile={profile} onProfileSaved={setProfile} />
             <ContrasenaSection />
             <CerrarSesionSection />
           </>

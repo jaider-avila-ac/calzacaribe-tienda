@@ -26,11 +26,13 @@ async function logout() {
 }
 
 export const authService = {
-  register:       (email, password, nombre, apellido, numeroDocumento) =>
+  register:       (email, password, nombre, apellido, numeroDocumento, aceptaTerminos, aceptaPromo) =>
     post('/register', {
       email, password, nombre, apellido,
       tipo_documento: numeroDocumento ? 'CC' : undefined,
       numero_documento: numeroDocumento || undefined,
+      acepta_terminos: aceptaTerminos,
+      acepta_promo: aceptaPromo,
     }),
 
   verify:         (email, code) =>

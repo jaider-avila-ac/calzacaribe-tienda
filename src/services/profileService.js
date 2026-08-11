@@ -7,6 +7,7 @@ export const EMPTY_PROFILE = {
   telefono: '',
   tipoDocumento: 'CC',
   numeroDocumento: '',
+  aceptaPromo: true,
   direcciones: [],
 }
 
@@ -34,10 +35,14 @@ function normalizeProfile(data = {}) {
     telefono: data.telefono ?? '',
     tipoDocumento: data.tipo_documento ?? data.tipoDocumento ?? 'CC',
     numeroDocumento: data.numero_documento ?? data.numeroDocumento ?? '',
+    aceptaPromo: data.acepta_promo ?? data.aceptaPromo ?? true,
     direcciones: Array.isArray(data.direcciones) ? data.direcciones.map(normalizeDireccion) : [],
   }
 }
 
+// aceptaPromo se manda solo si viene explícito (true/false) — así los formularios que no tocan
+// esta preferencia (datos personales, direcciones) no la pisan sin querer (ver COALESCE en
+// TiendaClientePerfilService.updatePerfil, que conserva el valor guardado cuando llega null).
 function toProfilePayload(data = {}) {
   return {
     nombre: data.nombre ?? '',
@@ -45,6 +50,7 @@ function toProfilePayload(data = {}) {
     telefono: data.telefono ?? '',
     tipo_documento: data.tipoDocumento ?? 'CC',
     numero_documento: data.numeroDocumento ?? '',
+    acepta_promo: typeof data.aceptaPromo === 'boolean' ? data.aceptaPromo : null,
   }
 }
 

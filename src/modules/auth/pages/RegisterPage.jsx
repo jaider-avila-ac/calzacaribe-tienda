@@ -37,6 +37,8 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
+  const [aceptaPromo, setAceptaPromo] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -50,11 +52,16 @@ export default function RegisterPage() {
     isEmailValid &&
     password.length >= 6 &&
     confirmPassword.length >= 6 &&
-    password === confirmPassword
+    password === confirmPassword &&
+    aceptaTerminos
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    if (!aceptaTerminos) {
+      setError('Debes aceptar los Términos de uso y la Política de privacidad para continuar.')
+      return
+    }
     if (!canSubmit) return
     if (password !== confirmPassword) {
       setError('Las contrasenas no coinciden.')
@@ -68,6 +75,8 @@ export default function RegisterPage() {
         capitalizeWords(nombre),
         capitalizeWords(apellido),
         numeroDocumento.trim(),
+        aceptaTerminos,
+        aceptaPromo,
       )
       navigate('/verificar', { state: { email: normalizedEmail } })
     } catch (err) {
@@ -245,6 +254,33 @@ export default function RegisterPage() {
                 </button>
               </div>
             </div>
+            <div className="space-y-2.5 pt-1">
+              <label className="flex items-start gap-2.5 text-xs text-gray-500 leading-relaxed cursor-pointer">
+                <input
+                  type="checkbox"
+                  required
+                  checked={aceptaTerminos}
+                  onChange={(e) => setAceptaTerminos(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 flex-shrink-0 accent-black"
+                />
+                <span>
+                  He leído y acepto los{' '}
+                  <a href="https://www.calzacaribe.com/terminos" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">Términos de uso</a>
+                  {' '}y la{' '}
+                  <a href="https://www.calzacaribe.com/privacidad" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">Política de privacidad</a>.
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 text-xs text-gray-500 leading-relaxed cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={aceptaPromo}
+                  onChange={(e) => setAceptaPromo(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 flex-shrink-0 accent-black"
+                />
+                <span>Quiero recibir ofertas y promociones de Calzacaribe (puedes cambiarlo cuando quieras).</span>
+              </label>
+            </div>
+
             <button
               type="submit" disabled={loading || !canSubmit}
               className="w-full h-[54px] bg-black text-white text-base font-bold hover:bg-gray-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
@@ -279,13 +315,6 @@ export default function RegisterPage() {
           <p className="text-center text-sm text-gray-500">
             ¿Ya tienes cuenta?{' '}
             <Link to="/login" className="font-bold text-black hover:underline">Iniciar sesión</Link>
-          </p>
-
-          <p className="text-center text-xs text-gray-400 leading-relaxed">
-            Al registrarte aceptas nuestros{' '}
-            <a href="https://www.calzacaribe.com/terminos" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">Términos de uso</a>
-            {' '}y la{' '}
-            <a href="https://www.calzacaribe.com/privacidad" target="_blank" rel="noopener noreferrer" className="font-bold text-black hover:underline">Política de privacidad</a>.
           </p>
         </div>
       </div>
