@@ -11,6 +11,56 @@ import { getBanners } from '../../../services/bannerService'
 import { useBackendOnline } from '../../../hooks/useBackendOnline'
 import CollectionsGrid from '../components/CollectionsGrid'
 
+/** Tira de "Explora nuestro catálogo": solo se duplica y anima cuando UN solo set de productos
+ *  ya desborda el ancho visible del contenedor — en ese caso, las dos copias de un mismo
+ *  producto siempre quedan separadas por más de un ancho de pantalla, así que nunca se puede
+ *  ver el mismo producto dos veces al mismo tiempo, sin importar en qué punto vaya el scroll.
+ *  Con pocos productos (un solo set ya cabe completo en pantalla) no se duplica nada — se
+ *  muestra una sola vez, estática, sin animación. */
+function ProductMarquee({ products }) {
+  const containerRef = useRef(null)
+  const measureRef = useRef(null)
+  const [shouldLoop, setShouldLoop] = useState(false)
+
+  useEffect(() => {
+    const container = containerRef.current
+    const measure = measureRef.current
+    if (!container || !measure) return
+
+    // measureRef siempre contiene UN solo set (nunca duplicado, invisible, fuera del flujo) —
+    // si ya desborda el contenedor visible, hay contenido de sobra para que el loop se vea
+    // continuo; si no, se muestra tal cual, sin animación.
+    const check = () => setShouldLoop(measure.scrollWidth > container.clientWidth)
+    check()
+
+    const ro = new ResizeObserver(check)
+    ro.observe(container)
+    ro.observe(measure)
+    return () => ro.disconnect()
+  }, [products])
+
+  const visibles = shouldLoop ? [...products, ...products] : products
+
+  return (
+    <div ref={containerRef} className="overflow-hidden relative">
+      <div ref={measureRef} className="invisible absolute left-0 top-0 flex gap-3 w-max px-4 pointer-events-none" aria-hidden>
+        {products.map((p) => (
+          <div key={p.id} className="w-36 sm:w-48 flex-shrink-0">
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+      <div className={`flex gap-3 w-max px-4 ${shouldLoop ? 'marquee-track' : ''}`}>
+        {visibles.map((p, i) => (
+          <div key={`${p.id}-${i}`} className="w-36 sm:w-48 flex-shrink-0">
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function BannerHero({ banners }) {
   const slides = banners
   const [current, setCurrent] = useState(0)
@@ -191,15 +241,7 @@ export default function HomePage() {
               Ver todos <ArrowRight size={12} />
             </Link>
           </div>
-          <div className="overflow-hidden">
-            <div className="marquee-track flex gap-3 w-max px-4">
-              {[...destacados, ...destacados].map((p, i) => (
-                <div key={`${p.id}-${i}`} className="w-36 sm:w-48 flex-shrink-0">
-                  <ProductCard product={p} />
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProductMarquee products={destacados} />
         </section>
       )}
 
