@@ -5,6 +5,7 @@ import { useCart } from '../../../context/CartContext'
 import { getStock, validateCart } from '../../../services/stockService'
 import { getProfile } from '../../../services/profileService'
 import { pedidoService } from '../../../services/pedidoService'
+import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../../services/checkoutIntent'
 import { getAcceptanceTokens, tokenizeCard } from '../../../services/wompiService'
 import { fmt } from '../../../utils/format'
 import FormField from '../../../components/ui/FormField'
@@ -116,18 +117,20 @@ export default function CartPage() {
     checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
-    // Se genera UNA vez por intento y se manda tal cual — si el mismo click llegara a disparar
-    // dos solicitudes (proxy, doble evento), el backend las reconoce como la misma intención y
-    // produce un solo pedido (ver IdempotenciaGuard).
-    const idempotencyKey = crypto.randomUUID()
+    // Persistida en sessionStorage y atada a la intención (dirección + carrito) — si la respuesta
+    // se pierde por timeout y el usuario reintenta (incluso tras recargar), reusa la MISMA clave
+    // en vez de generar una nueva cada vez (ver checkoutIntent.js e I-02 de la tercera auditoría).
+    const idempotencyKey = getOrCreateIdempotencyKey({ direccionId: selectedDir.id, metodo: 'wompi', cart })
     try {
       const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
+      clearIdempotencyKey() // resultado definitivo: va a redirigir a la ventana de pago de Wompi
       window.location.href = data.checkout_url
       // No se libera el mutex: la página está a punto de navegar fuera.
     } catch (err) {
       setPaymentError(err.message || 'No se pudo iniciar el pago. Intenta de nuevo.')
       setProcessing(false)
       checkoutMutexRef.current = false
+      // La clave NO se limpia: un reintento debe reusarla mientras la intención no cambie.
     }
   }
 
@@ -136,7 +139,7 @@ export default function CartPage() {
     checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
-    const idempotencyKey = crypto.randomUUID()
+    const idempotencyKey = getOrCreateIdempotencyKey({ direccionId: selectedDir.id, metodo: 'tarjeta', cart })
     try {
       const cardToken = await tokenizeCard(
         { number: card.numero, cvc: card.cvc, expMonth: card.mes, expYear: card.anio, cardHolder: card.titular },
@@ -154,14 +157,18 @@ export default function CartPage() {
         setPaymentError(data.mensaje)
         setProcessing(false)
         checkoutMutexRef.current = false
+        clearIdempotencyKey() // resultado definitivo (aunque desfavorable) -> un nuevo intento usa clave nueva
         return
       }
+      clearIdempotencyKey() // APPROVED/PENDING: resultado definitivo, ya seguimos a la página de resultado
       await refreshCart()
       navigate(`/pedido/resultado?numero=${data.numero}`)
     } catch (err) {
       setPaymentError(err.message || 'No se pudo procesar el pago. Intenta de nuevo.')
       setProcessing(false)
       checkoutMutexRef.current = false
+      // La clave NO se limpia acá: sigue siendo la misma intención, un error de red no es
+      // un resultado definitivo (ver I-02).
     }
   }
 
