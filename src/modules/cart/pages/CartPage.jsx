@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingBag, AlertCircle, MapPin, ChevronRight, Loader2, CreditCard, ExternalLink } from 'lucide-react'
 import { useCart } from '../../../context/CartContext'
@@ -35,6 +35,11 @@ export default function CartPage() {
   const [acceptDatos, setAcceptDatos] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+  // Mutex SINCRÓNICO (no useState — su efecto sobre el próximo render no es inmediato, ver
+  // REAUDITORIA_FUNCIONAL_E_IDEMPOTENCIA.md sección 3.1): si el usuario hace doble clic antes de
+  // que React desactive el botón, la segunda invocación se corta acá mismo, sin llegar siquiera
+  // a generar una segunda solicitud.
+  const checkoutMutexRef = useRef(false)
 
   useEffect(() => {
     let alive = true
@@ -107,20 +112,31 @@ export default function CartPage() {
   const setCardField = (key) => (e) => setCard((prev) => ({ ...prev, [key]: e.target.value }))
 
   const handlePagarWompi = async () => {
+    if (checkoutMutexRef.current) return
+    checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
+    // Se genera UNA vez por intento y se manda tal cual — si el mismo click llegara a disparar
+    // dos solicitudes (proxy, doble evento), el backend las reconoce como la misma intención y
+    // produce un solo pedido (ver IdempotenciaGuard).
+    const idempotencyKey = crypto.randomUUID()
     try {
-      const data = await pedidoService.checkoutHospedado(selectedDir.id)
+      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
       window.location.href = data.checkout_url
+      // No se libera el mutex: la página está a punto de navegar fuera.
     } catch (err) {
       setPaymentError(err.message || 'No se pudo iniciar el pago. Intenta de nuevo.')
       setProcessing(false)
+      checkoutMutexRef.current = false
     }
   }
 
   const handlePagarTarjeta = async () => {
+    if (checkoutMutexRef.current) return
+    checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
+    const idempotencyKey = crypto.randomUUID()
     try {
       const cardToken = await tokenizeCard(
         { number: card.numero, cvc: card.cvc, expMonth: card.mes, expYear: card.anio, cardHolder: card.titular },
@@ -132,10 +148,12 @@ export default function CartPage() {
         cardToken,
         acceptanceToken: acceptanceTokens.acceptance_token,
         personalAuthToken: acceptanceTokens.personal_auth_token,
+        idempotencyKey,
       })
-      if (data.status === 'DECLINED') {
+      if (data.status === 'DECLINED' || data.status === 'ERROR') {
         setPaymentError(data.mensaje)
         setProcessing(false)
+        checkoutMutexRef.current = false
         return
       }
       await refreshCart()
@@ -143,11 +161,12 @@ export default function CartPage() {
     } catch (err) {
       setPaymentError(err.message || 'No se pudo procesar el pago. Intenta de nuevo.')
       setProcessing(false)
+      checkoutMutexRef.current = false
     }
   }
 
   const handleCheckout = () => {
-    if (!canSubmit) return
+    if (!canSubmit || checkoutMutexRef.current) return
     if (metodo === 'wompi') handlePagarWompi()
     else handlePagarTarjeta()
   }

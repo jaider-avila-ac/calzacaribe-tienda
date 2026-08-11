@@ -4,15 +4,20 @@ import { tokenStore } from './tokenStore'
 const BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/public`
 
 export const pedidoService = {
-  checkoutHospedado: (direccionId) =>
+  // idempotencyKey: obligatorio — el llamador lo genera (crypto.randomUUID()) y lo conserva
+  // mientras dure ese intento de pago concreto. Ver CartPage.jsx (mutex + generación) y
+  // IdempotenciaGuard en el backend: sin esta clave el backend rechaza la solicitud.
+  checkoutHospedado: (direccionId, idempotencyKey) =>
     fetchAuth('/pedidos/checkout', {
       method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify({ direccion_id: direccionId }),
     }),
 
-  checkoutTarjeta: ({ direccionId, cardToken, acceptanceToken, personalAuthToken }) =>
+  checkoutTarjeta: ({ direccionId, cardToken, acceptanceToken, personalAuthToken, idempotencyKey }) =>
     fetchAuth('/pedidos/checkout/tarjeta', {
       method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
       body: JSON.stringify({
         direccion_id: direccionId,
         card_token: cardToken,
