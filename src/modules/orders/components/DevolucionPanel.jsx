@@ -14,6 +14,7 @@ const ESTADO_INFO = {
 export default function DevolucionPanel({ numero, estadoPedido }) {
   const [devolucion, setDevolucion] = useState(undefined) // undefined = cargando, null = ninguna
   const [formOpen, setFormOpen] = useState(false)
+  const [tipo, setTipo] = useState('')
   const [motivo, setMotivo] = useState('')
   const [fotos, setFotos] = useState([]) // [{ file, preview }]
   const [codigo, setCodigo] = useState('')
@@ -42,6 +43,7 @@ export default function DevolucionPanel({ numero, estadoPedido }) {
   const quitarFoto = (idx) => setFotos((prev) => prev.filter((_, i) => i !== idx))
 
   const handleEnviarSolicitud = async () => {
+    if (!tipo) { setError('Indica qué pasó con tu pedido'); return }
     if (!motivo.trim()) { setError('Cuéntanos por qué quieres devolver el pedido'); return }
     setLoading(true)
     setError('')
@@ -50,8 +52,9 @@ export default function DevolucionPanel({ numero, estadoPedido }) {
       for (const f of fotos) {
         fotoUrls.push(await uploadFotoDevolucion(f.file, numero))
       }
-      await pedidoService.crearDevolucion(numero, { motivo: motivo.trim(), fotoUrls })
+      await pedidoService.crearDevolucion(numero, { tipo, motivo: motivo.trim(), fotoUrls })
       setFormOpen(false)
+      setTipo('')
       setMotivo('')
       setFotos([])
       load()
@@ -161,10 +164,40 @@ export default function DevolucionPanel({ numero, estadoPedido }) {
 
       {puedeSolicitar && formOpen && (
         <div className="space-y-2 border border-gray-200 p-3">
+          <p className="text-xs font-bold text-black">¿Qué pasó con tu pedido?</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setTipo('retracto')}
+              className={`flex-1 text-xs font-semibold px-2 py-2 border transition-colors ${tipo === 'retracto' ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'}`}
+            >
+              Ya no lo quiero
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipo('defecto')}
+              className={`flex-1 text-xs font-semibold px-2 py-2 border transition-colors ${tipo === 'defecto' ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'}`}
+            >
+              Tiene un defecto
+            </button>
+          </div>
+          {tipo === 'retracto' && (
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Tienes 5 días hábiles desde la entrega para devolverlo y te reembolsamos el dinero
+              (art. 47, Ley 1480 de 2011). El producto debe conservar su empaque y etiquetas, sin
+              señales de uso. No hacemos cambios por talla, color o gusto — solo devolución.
+            </p>
+          )}
+          {tipo === 'defecto' && (
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Cuéntanos el defecto y adjunta fotos — nuestro equipo de calidad lo revisa. Si se
+              confirma que es de fábrica, asumimos el costo del envío del cambio.
+            </p>
+          )}
           <textarea
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Cuéntanos qué pasó con tu pedido..."
+            placeholder={tipo === 'defecto' ? 'Describe el defecto que notaste...' : 'Cuéntanos qué pasó con tu pedido...'}
             rows={3}
             className="w-full border border-gray-200 px-3 py-2 text-xs focus:outline-none focus:border-black resize-none"
           />
