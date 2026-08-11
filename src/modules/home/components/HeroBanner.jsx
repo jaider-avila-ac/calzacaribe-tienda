@@ -73,7 +73,7 @@ export default function HeroBanner() {
           <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-white/20">
             {[
               { icon: Truck, text: envioText },
-              { icon: RefreshCw, text: 'Cambios y devoluciones en 30 días' },
+              { icon: RefreshCw, text: 'Devoluciones en 5 días hábiles' },
               { icon: Shield, text: 'Compra segura 100% garantizada' },
             ].map(({ icon: Icon, text }) => (
               <div key={text} className="flex items-center justify-center gap-2 py-2.5 sm:py-2 text-center sm:text-left">
