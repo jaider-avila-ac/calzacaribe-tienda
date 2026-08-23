@@ -5,7 +5,7 @@ import { useCart } from '../../../context/CartContext'
 import { getStock, validateCart } from '../../../services/stockService'
 import { getProfile } from '../../../services/profileService'
 import { pedidoService } from '../../../services/pedidoService'
-import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../../services/checkoutIntent'
+import { getOrCreateIdempotencyKey, clearIdempotencyKey, getNumeroDelIntento, marcarPedidoDelIntento } from '../../../services/checkoutIntent'
 import { getAcceptanceTokens, tokenizeCard } from '../../../services/wompiService'
 import { fmt } from '../../../utils/format'
 import { siteOrigin } from '../../../utils/seo'
@@ -118,18 +118,39 @@ export default function CartPage() {
     checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
+
+    const intent = { direccionId: selectedDir.id, metodo: 'wompi', cart }
+
+    // Si esta MISMA intención ya generó un pedido antes (ej. el cliente cerró la pestaña de Wompi
+    // en vez de volver por PedidoResultadoPage, así que la clave nunca se limpió), se comprueba su
+    // estado real antes de reusar la clave a ciegas: si ese pedido ya quedó resuelto (aprobado o
+    // cancelado), Wompi va a rechazar la referencia por "ya usada" si se reintenta con ella. Si la
+    // consulta falla (red, pedido ya no existe, etc.) se sigue igual — nunca debe ser esto lo que
+    // bloquee al cliente de comprar.
+    const numeroPrevio = getNumeroDelIntento(intent)
+    if (numeroPrevio) {
+      try {
+        const previo = await pedidoService.estadoPedido(numeroPrevio)
+        if (previo.estado !== 'pendiente_pago') clearIdempotencyKey()
+      } catch {
+        // No se pudo confirmar — se sigue con la clave que haya, no vale la pena bloquear por esto.
+      }
+    }
+
     // Persistida en sessionStorage y atada a la intención (dirección + carrito) — si la respuesta
     // se pierde por timeout y el usuario reintenta (incluso tras recargar), reusa la MISMA clave
     // en vez de generar una nueva cada vez (ver checkoutIntent.js e I-02 de la tercera auditoría).
-    const idempotencyKey = getOrCreateIdempotencyKey({ direccionId: selectedDir.id, metodo: 'wompi', cart })
+    const idempotencyKey = getOrCreateIdempotencyKey(intent)
     try {
       const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
+      marcarPedidoDelIntento(data.numero)
       // NO se limpia la clave acá (ver Q-01, cuarta auditoría): obtener la URL de Wompi no es un
       // resultado definitivo del pago, solo del PEDIDO. Si el usuario cierra la ventana, vuelve al
       // carrito y paga de nuevo antes de que el pago se resuelva, debe reusar la MISMA clave —así
       // el backend le devuelve el mismo pedido/URL en vez de crear uno segundo mientras el primero
-      // todavía puede aprobarse. Se limpia recién cuando el pedido llega a un estado terminal (ver
-      // PedidoResultadoPage).
+      // todavía puede aprobarse. Se limpia cuando el pedido llega a un estado terminal, o cuando se
+      // agota la espera (ver PedidoResultadoPage) — y, si aun así se reusara, el chequeo de arriba
+      // es la última red de seguridad.
       window.location.href = data.checkout_url
       // No se libera el mutex: la página está a punto de navegar fuera.
     } catch (err) {

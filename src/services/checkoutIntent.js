@@ -36,3 +36,29 @@ export function getOrCreateIdempotencyKey({ direccionId, metodo, cart }) {
 export function clearIdempotencyKey() {
   sessionStorage.removeItem(STORAGE_KEY)
 }
+
+// Recuerda a qué pedido quedó atado el intento actual (se llama justo después de que el checkout
+// hospedado responde) — así, si el cliente vuelve a pagar con la MISMA intención (mismo carrito/
+// dirección/método) antes de pasar por PedidoResultadoPage, se puede comprobar si ese pedido ya
+// quedó resuelto (aprobado/cancelado) antes de reusar la clave a ciegas.
+export function marcarPedidoDelIntento(numero) {
+  try {
+    const guardado = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')
+    if (guardado) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...guardado, numero }))
+  } catch {
+    // No hay intento guardado que anotar — no pasa nada, es solo un dato auxiliar.
+  }
+}
+
+/** Número de pedido del intento guardado, solo si la intención actual (carrito/dirección/método)
+ *  coincide con la que quedó registrada — null si no hay nada guardado o cambió la intención. */
+export function getNumeroDelIntento({ direccionId, metodo, cart }) {
+  const firma = firmaIntencion({ direccionId, metodo, cart })
+  try {
+    const guardado = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')
+    if (guardado && guardado.firma === firma) return guardado.numero ?? null
+  } catch {
+    // ignorar
+  }
+  return null
+}
