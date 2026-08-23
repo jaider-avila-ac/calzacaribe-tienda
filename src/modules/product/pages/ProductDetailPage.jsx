@@ -896,12 +896,16 @@ export default function ProductDetailPage() {
 
                     {p.esMia && editandoPregId !== p.id && (
                       <div className="flex gap-3 ml-10 mt-1">
-                        <button
-                          onClick={() => { setEditandoPregId(p.id); setTextoEditado(p.texto) }}
-                          className="text-[11px] font-semibold text-gray-400 hover:text-black transition-colors"
-                        >
-                          Editar
-                        </button>
+                        {/* Ya respondida: editar el texto original dejaría la respuesta de Calzacaribe
+                            desalineada con la pregunta que la originó, así que se deja de ofrecer. */}
+                        {!p.respuestaTexto && (
+                          <button
+                            onClick={() => { setEditandoPregId(p.id); setTextoEditado(p.texto) }}
+                            className="text-[11px] font-semibold text-gray-400 hover:text-black transition-colors"
+                          >
+                            Editar
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEliminarPregunta(p.id)}
                           className="text-[11px] font-semibold text-gray-400 hover:text-red-600 transition-colors"
