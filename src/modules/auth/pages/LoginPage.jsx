@@ -4,6 +4,8 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
 import { isInAppBrowser } from '../../../utils/googleButton'
+import GoogleAuthDiagnostics from '../components/GoogleAuthDiagnostics'
+import { googleAuthEnvironment, recordGoogleAuthEvent } from '../../../utils/googleAuthDiagnostics'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -32,6 +34,8 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [googleLoading, setGoogleLoading] = useState(false)
   const googleBtnRef = useRef(null)
+  const googleWatchdogRef = useRef(null)
+  const [googleDiagnosticVisible, setGoogleDiagnosticVisible] = useState(false)
   const [inAppBrowser] = useState(isInAppBrowser)
 
   const success = useCallback((data) => {
@@ -58,10 +62,16 @@ export default function LoginPage() {
   }
 
   const handleGoogleCredential = useCallback(async (response) => {
+    clearTimeout(googleWatchdogRef.current)
+    recordGoogleAuthEvent('credential_callback_received', {
+      credential_present: Boolean(response?.credential),
+      select_by: response?.select_by || null,
+    })
     setGoogleLoading(true)
     setError('')
     try {
       const data = await authService.googleLogin(response.credential)
+      recordGoogleAuthEvent('session_received_navigating')
       success(data)
     } catch (err) {
       if (err.status === 409 && err.data?.message === 'USE_PASSWORD') {
@@ -69,19 +79,37 @@ export default function LoginPage() {
       } else {
         setError('No se pudo iniciar sesión con Google. Intenta de nuevo.')
       }
+      setGoogleDiagnosticVisible(true)
       setGoogleLoading(false)
     }
   }, [success])
 
-  // Botón REAL de Google, visible (nunca ocultarlo/reemplazarlo por uno propio — Google lo
-  // desaconseja explícitamente y, en la práctica, así fallaba en algunos celulares aunque
-  // funcionara siempre en PC: con el botón real invisible superpuesto a uno falso, el flujo
-  // más nuevo de Google (FedCM, cada vez más forzado en navegadores móviles) puede completar
-  // el selector de cuenta pero nunca devolver la credencial a la página — se queda "cargando"
-  // en blanco sin ningún error, exactamente el síntoma reportado. Con el botón real y visible
-  // esto no puede pasar: es el mismo elemento que usa cualquier otro sitio con login de Google.
+  const handleGoogleClick = useCallback(() => {
+    recordGoogleAuthEvent('google_button_clicked', googleAuthEnvironment('login'))
+    setGoogleLoading(true)
+    clearTimeout(googleWatchdogRef.current)
+    googleWatchdogRef.current = setTimeout(() => {
+      recordGoogleAuthEvent('credential_callback_timeout', {
+        waited_ms: 45000,
+        visibility: document.visibilityState,
+        focused: document.hasFocus(),
+        online: navigator.onLine,
+      })
+      setGoogleLoading(false)
+      setGoogleDiagnosticVisible(true)
+      setError('Google no devolvió la confirmación después de 45 segundos. Cierra la pantalla en blanco, vuelve aquí y copia el diagnóstico.')
+    }, 45000)
+  }, [])
+
+  // El botón oficial evita overlays incompatibles, pero el popup todavía depende de la
+  // comunicación entre ventanas. El click_listener y el watchdog permiten distinguir si
+  // Google no devuelve la credencial o si el bloqueo ocurre después, al llamar al backend.
   useEffect(() => {
-    if (inAppBrowser) return // Google rechaza el flujo acá — ver isInAppBrowser()
+    recordGoogleAuthEvent('auth_page_loaded', googleAuthEnvironment('login'))
+    if (inAppBrowser) {
+      recordGoogleAuthEvent('in_app_browser_blocked')
+      return
+    }
     let cancelled = false
     let retryTimeoutId
     let renderFn
@@ -92,11 +120,20 @@ export default function LoginPage() {
         retryTimeoutId = setTimeout(setup, 200)
         return
       }
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        callback: handleGoogleCredential,
-        auto_select: false,
-      })
+      try {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredential,
+          auto_select: false,
+          ux_mode: 'popup',
+        })
+        recordGoogleAuthEvent('gis_initialized', { client_id_present: Boolean(GOOGLE_CLIENT_ID), ux_mode: 'popup' })
+      } catch (error) {
+        recordGoogleAuthEvent('gis_initialize_error', { name: error.name, message: error.message })
+        setGoogleDiagnosticVisible(true)
+        setError('No se pudo inicializar el acceso con Google.')
+        return
+      }
       renderFn = () => {
         if (!googleBtnRef.current) return
         googleBtnRef.current.innerHTML = ''
@@ -107,7 +144,9 @@ export default function LoginPage() {
           text: 'continue_with',
           logo_alignment: 'left',
           width: googleBtnRef.current.offsetWidth,
+          click_listener: handleGoogleClick,
         })
+        recordGoogleAuthEvent('google_button_rendered', { width: googleBtnRef.current.offsetWidth })
       }
       renderFn()
       window.addEventListener('resize', renderFn)
@@ -117,9 +156,10 @@ export default function LoginPage() {
     return () => {
       cancelled = true
       clearTimeout(retryTimeoutId)
+      clearTimeout(googleWatchdogRef.current)
       if (renderFn) window.removeEventListener('resize', renderFn)
     }
-  }, [handleGoogleCredential, inAppBrowser])
+  }, [handleGoogleCredential, handleGoogleClick, inAppBrowser])
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
@@ -148,6 +188,8 @@ export default function LoginPage() {
               {error}
             </div>
           )}
+
+          <GoogleAuthDiagnostics forceVisible={googleDiagnosticVisible} />
 
           {/* Panel: social */}
           {view === 'social' && (
