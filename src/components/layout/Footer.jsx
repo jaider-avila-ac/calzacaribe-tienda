@@ -10,6 +10,14 @@ function IconWhatsApp({ size = 17 }) {
   )
 }
 
+function IconTikTok({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 0115.54 3h-3.09v12.4a2.592 2.592 0 01-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 004.3 1.38V7.3s-1.88.09-3.24-1.48z"/>
+    </svg>
+  )
+}
+
 export default function Footer() {
   return (
     <footer className="bg-black text-white mt-16">
@@ -27,6 +35,7 @@ export default function Footer() {
               {[
                 { icon: Instagram, href: 'https://www.instagram.com/calzacaribe_baq/', label: 'Instagram' },
                 { icon: Facebook, href: '#', label: 'Facebook' },
+                { icon: IconTikTok, href: 'https://www.tiktok.com/@calzacaribe_baq', label: 'TikTok' },
                 { icon: IconWhatsApp, href: 'https://wa.me/573015097013', label: 'WhatsApp' },
               ].map(({ icon: Icon, href, label }) => (
                 <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="w-9 h-9 flex items-center justify-center text-white hover:bg-white/10 transition-all" aria-label={label}>
