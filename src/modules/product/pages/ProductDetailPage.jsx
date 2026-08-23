@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ShoppingBag, Minus, Plus, Check, Truck, RefreshCw, Shield,
@@ -158,6 +158,12 @@ export default function ProductDetailPage() {
   const [cantidad, setCantidad] = useState(1)
   const [activeMedia, setActiveMedia] = useState(0)
   const [added, setAdded] = useState(false)
+  const [adding, setAdding] = useState(false)
+  // Mutex SINCRÓNICO (no basta con el estado `adding`, cuyo efecto no es inmediato en el
+  // siguiente render): un doble clic en "Agregar al carrito" antes de que el botón se desactive
+  // visualmente ya no dispara dos POST — el UPSERT del backend SUMA cantidades, así que dos
+  // solicitudes agregarían el producto dos veces.
+  const addMutexRef = useRef(false)
   const [error, setError] = useState('')
   const [tab, setTab] = useState('caracteristicas')
 
@@ -321,6 +327,7 @@ export default function ProductDetailPage() {
 
   /* Agregar al carrito */
   const handleAddToCart = async () => {
+    if (addMutexRef.current) return
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/producto/${id}` } })
       return
@@ -340,6 +347,8 @@ export default function ProductDetailPage() {
     }
     if (stock === 0) { setError('Producto agotado'); return }
     setError('')
+    addMutexRef.current = true
+    setAdding(true)
     try {
       await addToCart({
         productId: product.id,
@@ -350,6 +359,9 @@ export default function ProductDetailPage() {
       setTimeout(() => setAdded(false), 2500)
     } catch (err) {
       setError(err.message || 'No se pudo agregar al carrito')
+    } finally {
+      setAdding(false)
+      addMutexRef.current = false
     }
   }
 
@@ -610,8 +622,8 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <button onClick={handleAddToCart}
-              className={`flex-1 flex items-center justify-center gap-2 font-bold text-sm px-5 py-3 transition-all active:scale-95 ${
+            <button onClick={handleAddToCart} disabled={adding}
+              className={`flex-1 flex items-center justify-center gap-2 font-bold text-sm px-5 py-3 transition-all active:scale-95 disabled:opacity-60 ${
                 added ? 'bg-accent-dark text-white' : 'bg-black text-white hover:bg-gray-800'
               }`}>
               {added
