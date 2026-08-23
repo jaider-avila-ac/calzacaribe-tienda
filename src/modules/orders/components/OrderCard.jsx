@@ -175,13 +175,25 @@ export default function OrderCard({ order }) {
       {/* Miniaturas */}
       <div className="px-4 sm:px-5 pb-3 flex gap-2 overflow-x-auto no-scrollbar">
         {order.items.slice(0, 5).map((item, i) => (
-          <Link
-            key={i}
-            to={`/producto/${item.productId}`}
-            className="flex-shrink-0 w-14 h-14 overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-300 transition-colors"
-          >
-            <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
-          </Link>
+          // Si el producto ya no existe (se borró), no hay a dónde llevar el click — se ve
+          // igual pero sin el link, en vez de mandar a /producto/null.
+          item.productId ? (
+            <Link
+              key={i}
+              to={`/producto/${item.productId}`}
+              className="flex-shrink-0 w-14 h-14 overflow-hidden bg-gray-50 border border-gray-100 hover:border-gray-300 transition-colors"
+            >
+              <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover" />
+            </Link>
+          ) : (
+            <div
+              key={i}
+              title={`${item.nombre} — Ya no disponible`}
+              className="flex-shrink-0 w-14 h-14 overflow-hidden bg-gray-50 border border-gray-100 relative"
+            >
+              <img src={item.imagen} alt={item.nombre} className="w-full h-full object-cover opacity-60" />
+            </div>
+          )
         ))}
         {order.items.length > 5 && (
           <div className="flex-shrink-0 w-14 h-14 bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
@@ -217,6 +229,9 @@ export default function OrderCard({ order }) {
                     <span key={k} className="text-xs text-gray-400">{k}: {v}</span>
                   ))}
                   <span className="text-xs text-gray-400">×{item.cantidad}</span>
+                  {!item.productId && (
+                    <span className="text-xs text-gray-400 italic">Ya no disponible</span>
+                  )}
                 </div>
               </div>
               <p className="text-sm font-bold text-black flex-shrink-0">
