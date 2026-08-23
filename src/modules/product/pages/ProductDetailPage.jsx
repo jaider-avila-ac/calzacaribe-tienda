@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { getProductById, getRelatedProducts } from '../../../services/productService'
 import { getResenas, getEstadoResena, crearResena } from '../../../services/reviewService'
+import { getPreguntas, crearPregunta, editarPregunta, eliminarPregunta } from '../../../services/preguntaService'
 import { getCategoryById } from '../../../services/categoryService'
 import { getStock, initStockFromProduct } from '../../../services/stockService'
 import { addReciente } from '../../../services/recentService'
@@ -184,6 +185,14 @@ export default function ProductDetailPage() {
   const [enviandoResena, setEnviandoResena] = useState(false)
   const [errorResena, setErrorResena] = useState('')
 
+  // Preguntas y respuestas
+  const [preguntas, setPreguntas] = useState([])
+  const [formPregunta, setFormPregunta] = useState('')
+  const [enviandoPregunta, setEnviandoPregunta] = useState(false)
+  const [errorPregunta, setErrorPregunta] = useState('')
+  const [editandoPregId, setEditandoPregId] = useState(null)
+  const [textoEditado, setTextoEditado] = useState('')
+
   useEffect(() => {
     setLoading(true)
     setNotFound(false)
@@ -197,6 +206,10 @@ export default function ProductDetailPage() {
     setFormCalificacion(0)
     setFormComentario('')
     setErrorResena('')
+    setPreguntas([])
+    setFormPregunta('')
+    setErrorPregunta('')
+    setEditandoPregId(null)
 
     getProductById(id)
       .then(async (p) => {
@@ -204,14 +217,16 @@ export default function ProductDetailPage() {
         initStockFromProduct(p)
         addReciente(p)
         registrarEvento('vista_producto', 'producto', p.id)
-        const [cat, rel, res] = await Promise.all([
+        const [cat, rel, res, preg] = await Promise.all([
           getCategoryById(p.categoriaId),
           getRelatedProducts(p.id, p.categoriaId, 4),
           getResenas(p.id),
+          getPreguntas(p.id).catch(() => []),
         ])
         setCategory(cat)
         setRelated(rel)
         setResenas(res)
+        setPreguntas(preg)
       })
       .catch((err) => {
         if (err?.offline) setServiceDown(true)
@@ -245,6 +260,48 @@ export default function ProductDetailPage() {
       setErrorResena('No se pudo enviar tu reseña. Intenta de nuevo.')
     } finally {
       setEnviandoResena(false)
+    }
+  }
+
+  const handleEnviarPregunta = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: `/producto/${id}` } })
+      return
+    }
+    if (!formPregunta.trim()) {
+      setErrorPregunta('Escribe tu pregunta')
+      return
+    }
+    setEnviandoPregunta(true)
+    setErrorPregunta('')
+    try {
+      const nueva = await crearPregunta(product.id, formPregunta.trim())
+      setPreguntas((prev) => [nueva, ...prev])
+      setFormPregunta('')
+    } catch {
+      setErrorPregunta('No se pudo enviar tu pregunta. Intenta de nuevo.')
+    } finally {
+      setEnviandoPregunta(false)
+    }
+  }
+
+  const handleGuardarEdicionPregunta = async (pregId) => {
+    if (!textoEditado.trim()) return
+    try {
+      await editarPregunta(product.id, pregId, textoEditado.trim())
+      setPreguntas((prev) => prev.map((p) => (p.id === pregId ? { ...p, texto: textoEditado.trim(), editada: true } : p)))
+      setEditandoPregId(null)
+    } catch {
+      setErrorPregunta('No se pudo guardar el cambio. Intenta de nuevo.')
+    }
+  }
+
+  const handleEliminarPregunta = async (pregId) => {
+    try {
+      await eliminarPregunta(product.id, pregId)
+      setPreguntas((prev) => prev.filter((p) => p.id !== pregId))
+    } catch {
+      setErrorPregunta('No se pudo eliminar la pregunta. Intenta de nuevo.')
     }
   }
 
@@ -675,6 +732,7 @@ export default function ProductDetailPage() {
             { key: 'caracteristicas', label: 'Características' },
             { key: 'descripcion', label: 'Descripción' },
             { key: 'resenas', label: tieneResenas ? `Reseñas (${totalResenas})` : 'Reseñas' },
+            { key: 'preguntas', label: preguntas.length ? `Preguntas (${preguntas.length})` : 'Preguntas' },
           ].map((t) => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-5 py-3 text-sm font-semibold border-b-2 -mb-px transition-colors ${
@@ -785,6 +843,103 @@ export default function ProductDetailPage() {
                   <Check size={13} /> Ya reseñaste este producto
                 </p>
               )}
+            </div>
+          )}
+
+          {tab === 'preguntas' && (
+            <div className="max-w-2xl space-y-5">
+              {preguntas.length === 0 ? (
+                <p className="text-sm text-gray-500">Todavía no hay preguntas sobre este producto — sé el primero.</p>
+              ) : (
+                preguntas.map((p) => (
+                  <div key={p.id} className="pb-4 border-b border-gray-100 last:border-0">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+                        {p.autor?.[0] ?? '?'}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-black">{p.autor}</p>
+                        <p className="text-[11px] text-gray-400">
+                          {formatFecha(p.creadoEn)}{p.editada ? ' · editada' : ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    {editandoPregId === p.id ? (
+                      <div className="ml-10">
+                        <textarea
+                          value={textoEditado}
+                          onChange={(e) => setTextoEditado(e.target.value)}
+                          rows={2}
+                          className="w-full text-sm border-2 border-gray-200 px-3 py-2 focus:outline-none focus:border-black transition-colors resize-none"
+                        />
+                        <div className="flex gap-2 mt-1.5">
+                          <button onClick={() => handleGuardarEdicionPregunta(p.id)}
+                            className="text-xs font-bold text-white bg-black px-3 py-1.5 hover:bg-gray-800 transition-colors">
+                            Guardar
+                          </button>
+                          <button onClick={() => setEditandoPregId(null)}
+                            className="text-xs font-semibold text-gray-500 hover:text-black px-3 py-1.5 transition-colors">
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-700 ml-10">{p.texto}</p>
+                    )}
+
+                    {p.esMia && editandoPregId !== p.id && (
+                      <div className="flex gap-3 ml-10 mt-1">
+                        <button
+                          onClick={() => { setEditandoPregId(p.id); setTextoEditado(p.texto) }}
+                          className="text-[11px] font-semibold text-gray-400 hover:text-black transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleEliminarPregunta(p.id)}
+                          className="text-[11px] font-semibold text-gray-400 hover:text-red-600 transition-colors"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    )}
+
+                    {p.respuestaTexto ? (
+                      <div className="ml-10 mt-2.5 pl-3 border-l-2 border-black">
+                        <p className="text-[11px] font-bold text-black uppercase tracking-wide">Calzacaribe responde</p>
+                        <p className="text-sm text-gray-700 mt-0.5">{p.respuestaTexto}</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 ml-10 mt-2">Esperando respuesta…</p>
+                    )}
+                  </div>
+                ))
+              )}
+
+              <hr className="border-gray-100" />
+              <div>
+                <p className="text-sm font-bold text-black mb-2">¿Tienes una duda sobre este producto?</p>
+                <textarea
+                  value={formPregunta}
+                  onChange={(e) => setFormPregunta(e.target.value)}
+                  placeholder={isAuthenticated ? 'Escribe tu pregunta…' : 'Inicia sesión para preguntar'}
+                  rows={2}
+                  className="w-full text-sm border-2 border-gray-200 px-3 py-2 focus:outline-none focus:border-black transition-colors resize-none"
+                />
+                {errorPregunta && (
+                  <p className="text-xs text-red-500 flex items-center gap-1 mt-1.5">
+                    <AlertCircle size={12} /> {errorPregunta}
+                  </p>
+                )}
+                <button
+                  onClick={handleEnviarPregunta}
+                  disabled={enviandoPregunta}
+                  className="mt-3 bg-black text-white font-bold text-sm px-5 py-2.5 hover:bg-gray-800 transition-colors disabled:opacity-50"
+                >
+                  {enviandoPregunta ? 'Enviando…' : isAuthenticated ? 'Enviar pregunta' : 'Iniciar sesión para preguntar'}
+                </button>
+              </div>
             </div>
           )}
         </div>

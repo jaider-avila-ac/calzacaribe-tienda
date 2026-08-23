@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight, Trash2,
-  CheckCircle, RefreshCw, PackageCheck, Tag, Bell,
+  CheckCircle, RefreshCw, PackageCheck, Tag, Bell, MessageCircleQuestion,
 } from 'lucide-react'
 
 const TIPO_META = {
@@ -9,6 +9,7 @@ const TIPO_META = {
   cambio_estado: { Icon: RefreshCw, label: 'Actualización' },
   oferta: { Icon: Tag, label: 'Oferta' },
   stock_disponible: { Icon: PackageCheck, label: 'Disponible' },
+  pregunta_respondida: { Icon: MessageCircleQuestion, label: 'Respondida' },
   otro: { Icon: Bell, label: 'Notificación' },
 }
 
@@ -35,7 +36,9 @@ function tiempoRelativo(str) {
 }
 
 function accionPara(notif) {
-  return notif.entidad_tipo === 'pedido' ? '/mis-compras' : null
+  if (notif.entidad_tipo === 'pedido') return '/mis-compras'
+  if (notif.entidad_tipo === 'producto' && notif.entidad_id) return `/producto/${notif.entidad_id}`
+  return null
 }
 
 export default function NotificationItem({ notif, onMarkRead, onDelete }) {
