@@ -150,33 +150,28 @@ export default function HomePage() {
   const [heroBanners, setHeroBanners] = useState([])
   const [heroLoading, setHeroLoading] = useState(true)
   const backendOnline = useBackendOnline()
+  // true mientras "recientes" venga de getRecientesDB (ya validado en el servidor, en vivo) —
+  // así el efecto de abajo no lo pisa con la versión podada localmente, que es solo el fallback.
+  const recientesDeDbRef = useRef(false)
 
   useEffect(() => {
     // Si el refresco en segundo plano trae datos nuevos, se reflejan solos sin recargar.
     const unsubscribe = subscribeProducts((data) => setProducts(Array.isArray(data) ? data : []))
 
     getProducts().then((data) => {
-      const list = Array.isArray(data) ? data : []
-      setProducts(list)
-
-      // Los recientes guardados en localStorage no se revalidan al guardarse — un producto
-      // borrado o desactivado después de verse se queda "fantasma" hasta que se filtra aquí.
-      const validIds = new Set(list.filter((p) => p.activo).map((p) => p.id))
-
-      if (tokenStore.isLoggedIn()) {
-        getRecientesDB(8).then((dbData) => {
-          if (Array.isArray(dbData) && dbData.length > 0) setRecientes(dbData)
-          else setRecientes(pruneRecientes(validIds).slice(0, 8))
-        })
-      } else {
-        setRecientes(pruneRecientes(validIds).slice(0, 8))
-      }
+      setProducts(Array.isArray(data) ? data : [])
     }).catch(() => {})
 
     getActiveCategories().then(setCategories).catch(() => {})
     getBanners('hero').then(setHeroBanners).catch(() => {}).finally(() => setHeroLoading(false))
 
     if (tokenStore.isLoggedIn()) {
+      getRecientesDB(8).then((dbData) => {
+        if (Array.isArray(dbData) && dbData.length > 0) {
+          recientesDeDbRef.current = true
+          setRecientes(dbData)
+        }
+      })
       getCategoriaFavoritaDB().then((catFav) => {
         setCatFavorita(catFav || getCategoriaFavorita())
       })
@@ -186,6 +181,18 @@ export default function HomePage() {
 
     return unsubscribe
   }, [])
+
+  // "products" llega primero desde el caché local (localStorage, puede estar desactualizado) y
+  // luego otra vez con el catálogo fresco del servidor (refresco en 2do plano, vía
+  // subscribeProducts) — antes esta poda solo corría una vez con la primera versión, así que un
+  // producto borrado/desactivado después de haberse visto quedaba "fantasma" en Vistos
+  // recientemente hasta que se refrescaba la página. Recalcular cada vez que products cambia
+  // cubre ambas pasadas (caché vieja y catálogo fresco) sin ese hueco.
+  useEffect(() => {
+    if (!products.length || recientesDeDbRef.current) return
+    const validIds = new Set(products.filter((p) => p.activo).map((p) => p.id))
+    setRecientes(pruneRecientes(validIds).slice(0, 8))
+  }, [products])
 
   // Si el backend no responde, no hay forma de confirmar que el caché local sigue vigente
   // (productos pudieron cambiar de precio/stock/estado) — mejor no mostrar nada a mostrar
