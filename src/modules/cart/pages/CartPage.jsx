@@ -15,7 +15,7 @@ import CartItem from '../components/CartItem'
 const CARD_EMPTY = { numero: '', mes: '', anio: '', cvc: '', titular: '' }
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, grandTotal, count, loading: cartLoading, freeShip } = useCart()
+  const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, shippingContraEntrega, grandTotal, count, loading: cartLoading, freeShip } = useCart()
   const freeShipActive = freeShip.activo
   const navigate = useNavigate()
 
@@ -215,7 +215,7 @@ export default function CartPage() {
       const vars = Object.entries(i.variantes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')
       return `• ${i.nombre}${vars ? ` (${vars})` : ''} ×${i.cantidad} → ${fmt(i.subtotal)}`
     }).join('\n') +
-    `\n\nSubtotal: ${fmt(total)}\nEnvío: ${shipping === 0 ? 'Gratis' : fmt(shipping)}\nTotal: ${fmt(grandTotal)}`
+    `\n\nSubtotal: ${fmt(total)}\nEnvío: ${shippingContraEntrega ? 'Contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}\nTotal: ${fmt(grandTotal)}`
   )
 
   return (
@@ -337,9 +337,14 @@ export default function CartPage() {
             <div className="flex justify-between">
               <span className="text-gray-500">Envío</span>
               <span className={`font-semibold ${shipping === 0 ? 'text-accent' : ''}`}>
-                {shipping === 0 ? 'Gratis' : fmt(shipping)}
+                {shippingContraEntrega ? 'Pagas contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}
               </span>
             </div>
+            {shippingContraEntrega && (
+              <p className="text-xs text-gray-400 -mt-1">
+                El costo del envío lo pagas directo al transportador cuando recibes tu pedido.
+              </p>
+            )}
           </div>
 
           <div className="border-t border-gray-100 pt-3 flex justify-between">

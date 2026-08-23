@@ -31,6 +31,7 @@ function normalizeCarrito(data) {
     count: data?.count ?? 0,
     total: data?.total ?? 0,
     shipping: data?.envio ?? 0,
+    shippingContraEntrega: data?.envio_contra_entrega ?? false,
     grandTotal: data?.total_con_envio ?? 0,
     freeShip: {
       activo: data?.envio_gratis_activo ?? false,

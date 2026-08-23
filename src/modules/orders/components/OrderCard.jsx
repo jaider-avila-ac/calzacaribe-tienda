@@ -232,7 +232,7 @@ export default function OrderCard({ order }) {
             <div className="flex justify-between text-gray-500">
               <span>Envío</span>
               <span className={order.envio === 0 ? 'text-accent font-semibold' : ''}>
-                {order.envio === 0 ? 'Gratis' : fmt(order.envio)}
+                {order.envioContraEntrega ? 'Pagado contra entrega' : order.envio === 0 ? 'Gratis' : fmt(order.envio)}
               </span>
             </div>
             <div className="flex justify-between font-black text-black pt-1 border-t border-gray-100">

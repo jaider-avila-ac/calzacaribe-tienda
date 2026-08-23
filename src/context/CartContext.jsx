@@ -10,6 +10,7 @@ export function CartProvider({ children }) {
   const [total, setTotal] = useState(0)
   const [count, setCount] = useState(0)
   const [shipping, setShipping] = useState(0)
+  const [shippingContraEntrega, setShippingContraEntrega] = useState(false)
   const [grandTotal, setGrandTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [freeShip, setFreeShip] = useState({ activo: false, desde: 0, alcanzado: false, faltante: 0, progreso: 0 })
@@ -19,6 +20,7 @@ export function CartProvider({ children }) {
     setTotal(data.total)
     setCount(data.count)
     setShipping(data.shipping)
+    setShippingContraEntrega(data.shippingContraEntrega)
     setGrandTotal(data.grandTotal)
     setFreeShip(data.freeShip)
   }
@@ -82,7 +84,7 @@ export function CartProvider({ children }) {
   }
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, grandTotal, count, loading, freeShip }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, shippingContraEntrega, grandTotal, count, loading, freeShip }}>
       {children}
     </CartContext.Provider>
   )

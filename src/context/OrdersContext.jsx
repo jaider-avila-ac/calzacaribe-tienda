@@ -11,6 +11,7 @@ function normalizeOrder(row) {
     fecha: row.creado_en,
     subtotal: row.subtotal,
     envio: row.envio,
+    envioContraEntrega: row.envio_contra_entrega ?? false,
     total: row.total,
     notas: row.notas,
     alertaStock: row.alerta_stock,

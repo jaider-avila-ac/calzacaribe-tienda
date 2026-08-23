@@ -4,7 +4,7 @@ import { useCart } from '../../context/CartContext'
 import { fmt } from '../../utils/format'
 
 export default function CartSidebar({ onClose }) {
-  const { cart, removeFromCart, updateQty, total, shipping, count, freeShip } = useCart()
+  const { cart, removeFromCart, updateQty, total, shipping, shippingContraEntrega, count, freeShip } = useCart()
   const freeShipActive = freeShip.activo
 
   return (
@@ -122,7 +122,7 @@ export default function CartSidebar({ onClose }) {
           <div className="flex justify-between items-baseline">
             <span className="text-xs text-gray-500">Envío</span>
             <span className={`text-xs font-semibold ${shipping === 0 ? 'text-accent' : 'text-gray-700'}`}>
-              {shipping === 0 ? 'Gratis' : fmt(shipping)}
+              {shippingContraEntrega ? 'Contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}
             </span>
           </div>
           <Link

@@ -5,13 +5,14 @@ import { getTiendaConfig } from '../../../services/tiendaConfigService'
 import { fmt } from '../../../utils/format'
 
 export default function HeroBanner() {
-  const [freeShip, setFreeShip] = useState({ activo: true, desde: 200000 })
+  const [freeShip, setFreeShip] = useState({ modo: 'contra_entrega', activo: true, desde: 200000 })
 
   useEffect(() => {
     let alive = true
     getTiendaConfig().then((cfg) => {
       if (!alive) return
       setFreeShip({
+        modo: cfg?.envio_modo === 'fijo' ? 'fijo' : 'contra_entrega',
         activo: cfg?.envio_gratis_activo ?? true,
         desde: cfg?.envio_gratis_desde ?? 200000,
       })
@@ -19,9 +20,11 @@ export default function HeroBanner() {
     return () => { alive = false }
   }, [])
 
-  const envioText = freeShip.activo
-    ? `Envío gratis en compras +${fmt(freeShip.desde)}`
-    : 'Envío rápido a todo Colombia'
+  const envioText = freeShip.modo === 'contra_entrega'
+    ? 'Envío contra entrega a todo Colombia'
+    : freeShip.activo
+      ? `Envío gratis en compras +${fmt(freeShip.desde)}`
+      : 'Envío rápido a todo Colombia'
 
   return (
     <>
