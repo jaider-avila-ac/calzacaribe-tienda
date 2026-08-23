@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
-import { stretchGoogleButton } from '../../../utils/googleButton'
+import { stretchGoogleButton, isInAppBrowser } from '../../../utils/googleButton'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -44,6 +44,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const googleVisibleBtnRef = useRef(null)
   const googleRealBtnRef = useRef(null)
+  const [inAppBrowser] = useState(isInAppBrowser)
 
   const success = useCallback((data) => {
     login(data)
@@ -89,6 +90,7 @@ export default function LoginPage() {
   // no depende de sesión activa en el navegador, a diferencia de prompt() (One Tap),
   // que falla con "opt_out_or_no_session" si no hay sesión de Google abierta.
   useEffect(() => {
+    if (inAppBrowser) return // Google rechaza el flujo acá — ver isInAppBrowser()
     let cancelled = false
     let retryTimeoutId
     let renderFn
@@ -128,7 +130,7 @@ export default function LoginPage() {
       clearTimeout(retryTimeoutId)
       if (renderFn) window.removeEventListener('resize', renderFn)
     }
-  }, [handleGoogleCredential])
+  }, [handleGoogleCredential, inAppBrowser])
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
@@ -163,22 +165,30 @@ export default function LoginPage() {
             <>
               <h2 className="text-center text-2xl font-bold text-black">Iniciar sesión</h2>
               <div className="space-y-3">
-                <div className="relative w-full h-[54px]">
-                  <button
-                    ref={googleVisibleBtnRef}
-                    type="button"
-                    tabIndex={-1}
-                    disabled={googleLoading}
-                    className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60 pointer-events-none"
-                  >
-                    {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-                    Continuar con Google
-                  </button>
-                  <div
-                    ref={googleRealBtnRef}
-                    className="absolute inset-0 z-10 overflow-hidden opacity-0 [&_iframe]:!w-full [&_iframe]:!h-full"
-                  />
-                </div>
+                {inAppBrowser ? (
+                  <p className="p-3 bg-amber-50 border border-amber-200 text-xs text-amber-800 text-center leading-relaxed">
+                    Google no permite iniciar sesión desde el navegador integrado de esta app.
+                    Toca el menú (⋯) y elige <strong>"Abrir en Chrome"</strong> o <strong>"Abrir en el navegador"</strong>,
+                    o usa "Continuar con correo" abajo.
+                  </p>
+                ) : (
+                  <div className="relative w-full h-[54px]">
+                    <button
+                      ref={googleVisibleBtnRef}
+                      type="button"
+                      tabIndex={-1}
+                      disabled={googleLoading}
+                      className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60 pointer-events-none"
+                    >
+                      {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+                      Continuar con Google
+                    </button>
+                    <div
+                      ref={googleRealBtnRef}
+                      className="absolute inset-0 z-10 overflow-hidden opacity-0 [&_iframe]:!w-full [&_iframe]:!h-full"
+                    />
+                  </div>
+                )}
                 <button
                   onClick={() => setView('email')}
                   className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center active:scale-[0.98]"

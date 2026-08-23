@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
-import { stretchGoogleButton } from '../../../utils/googleButton'
+import { stretchGoogleButton, isInAppBrowser } from '../../../utils/googleButton'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -44,6 +44,7 @@ export default function RegisterPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const googleVisibleBtnRef = useRef(null)
   const googleRealBtnRef = useRef(null)
+  const [inAppBrowser] = useState(isInAppBrowser)
 
   const normalizedEmail = email.trim()
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
@@ -114,6 +115,7 @@ export default function RegisterPage() {
   // Botón real de Google (invisible) superpuesto sobre el botón con nuestro diseño:
   // ver comentario equivalente en LoginPage.jsx (evita el fallo "opt_out_or_no_session").
   useEffect(() => {
+    if (inAppBrowser) return // Google rechaza el flujo acá — ver isInAppBrowser()
     let cancelled = false
     let retryTimeoutId
     let renderFn
@@ -150,7 +152,7 @@ export default function RegisterPage() {
       clearTimeout(retryTimeoutId)
       if (renderFn) window.removeEventListener('resize', renderFn)
     }
-  }, [handleGoogleCredential])
+  }, [handleGoogleCredential, inAppBrowser])
 
   return (
     <div className="flex w-full h-screen overflow-hidden bg-white">
@@ -295,22 +297,30 @@ export default function RegisterPage() {
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          <div className="relative w-full h-[54px]">
-            <button
-              ref={googleVisibleBtnRef}
-              type="button"
-              tabIndex={-1}
-              disabled={googleLoading}
-              className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60 pointer-events-none"
-            >
-              {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-              Continuar con Google
-            </button>
-            <div
-              ref={googleRealBtnRef}
-              className="absolute inset-0 z-10 overflow-hidden opacity-0 [&_iframe]:!w-full [&_iframe]:!h-full"
-            />
-          </div>
+          {inAppBrowser ? (
+            <p className="p-3 bg-amber-50 border border-amber-200 text-xs text-amber-800 text-center leading-relaxed">
+              Google no permite registrarse desde el navegador integrado de esta app.
+              Toca el menú (⋯) y elige <strong>"Abrir en Chrome"</strong> o <strong>"Abrir en el navegador"</strong>,
+              o crea tu cuenta con correo arriba.
+            </p>
+          ) : (
+            <div className="relative w-full h-[54px]">
+              <button
+                ref={googleVisibleBtnRef}
+                type="button"
+                tabIndex={-1}
+                disabled={googleLoading}
+                className="w-full h-[54px] border border-gray-200 text-[15px] font-semibold text-black bg-white hover:border-black hover:bg-gray-50 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60 pointer-events-none"
+              >
+                {googleLoading ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
+                Continuar con Google
+              </button>
+              <div
+                ref={googleRealBtnRef}
+                className="absolute inset-0 z-10 overflow-hidden opacity-0 [&_iframe]:!w-full [&_iframe]:!h-full"
+              />
+            </div>
+          )}
 
           <p className="text-center text-sm text-gray-500">
             ¿Ya tienes cuenta?{' '}
