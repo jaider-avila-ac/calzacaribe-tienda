@@ -136,10 +136,16 @@ function StarsInput({ value, onChange, size = 22 }) {
   )
 }
 
-function formatFecha(iso) {
-  if (!iso) return ''
+function formatFecha(str) {
+  if (!str) return ''
+  // Backend manda "dd/MM/yyyy HH:mm" en zona Bogotá (ver JacksonConfig), no ISO — new Date(str)
+  // directo da "Invalid Date" porque JS interpreta ese formato como MM/DD/YYYY.
   try {
-    return new Date(iso).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
+    const [datePart, timePart] = str.split(' ')
+    const [day, month, year] = datePart.split('/').map(Number)
+    const [hour, minute] = (timePart ?? '0:0').split(':').map(Number)
+    return new Date(year, month - 1, day, hour, minute)
+      .toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })
   } catch {
     return ''
   }
