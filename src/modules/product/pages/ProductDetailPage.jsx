@@ -377,7 +377,8 @@ export default function ProductDetailPage() {
   const waText = encodeURIComponent(
     `Hola, quiero pedir:\n*${product.nombre}*\n` +
     Object.entries(seleccionadas).map(([k, v]) => `${k}: ${v}`).join('\n') +
-    `\nPrecio: ${fmt(finalPrice)}`
+    `\nPrecio: ${fmt(finalPrice)}` +
+    `\n${siteOrigin()}/producto/${product.id}`
   )
 
   const allRequiredSelected = variantes
@@ -633,7 +634,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* WhatsApp */}
-          <a href={`https://wa.me/573155550001?text=${waText}`}
+          <a href={`https://wa.me/573015097013?text=${waText}`}
             target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 border-2 border-gray-200 px-5 py-3 text-sm font-bold text-gray-700 hover:border-black hover:text-black transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="currentColor">

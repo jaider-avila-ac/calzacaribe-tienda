@@ -8,6 +8,7 @@ import { pedidoService } from '../../../services/pedidoService'
 import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../../services/checkoutIntent'
 import { getAcceptanceTokens, tokenizeCard } from '../../../services/wompiService'
 import { fmt } from '../../../utils/format'
+import { siteOrigin } from '../../../utils/seo'
 import FormField from '../../../components/ui/FormField'
 import FormInput from '../../../components/ui/FormInput'
 import CartItem from '../components/CartItem'
@@ -213,7 +214,7 @@ export default function CartPage() {
     'Pedido Calzacaribe\n\n' +
     cart.map((i) => {
       const vars = Object.entries(i.variantes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')
-      return `• ${i.nombre}${vars ? ` (${vars})` : ''} ×${i.cantidad} → ${fmt(i.subtotal)}`
+      return `• ${i.nombre}${vars ? ` (${vars})` : ''} ×${i.cantidad} → ${fmt(i.subtotal)}\n  ${siteOrigin()}/producto/${i.productId}`
     }).join('\n') +
     `\n\nSubtotal: ${fmt(total)}\nEnvío: ${shippingContraEntrega ? 'Contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}\nTotal: ${fmt(grandTotal)}`
   )
@@ -463,7 +464,7 @@ export default function CartPage() {
           </div>
 
           <a
-            href={`https://wa.me/573155550001?text=${waMessage}`}
+            href={`https://wa.me/573015097013?text=${waMessage}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full border-2 border-gray-200 py-3 font-semibold text-sm text-gray-700 hover:border-black hover:text-black transition-colors active:scale-95"
