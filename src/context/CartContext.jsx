@@ -50,8 +50,17 @@ export function CartProvider({ children }) {
   }
 
   const updateQty = async (key, cantidad) => {
-    const data = await updateItem(key, cantidad)
-    applyCarrito(data)
+    try {
+      const data = await updateItem(key, cantidad)
+      applyCarrito(data)
+    } catch (err) {
+      // El backend ahora revalida stock en cada PUT (antes no lo hacía) — si el stock bajó
+      // entre que se pintó el carrito y el click (otra compra, otra pestaña), esto puede
+      // rechazar el +1 con 400. Se refresca el carrito real en vez de dejar la UI desincronizada.
+      const fresh = await getCarrito().catch(() => null)
+      if (fresh) applyCarrito(fresh)
+      throw err
+    }
   }
 
   const removeFromCart = async (key) => {

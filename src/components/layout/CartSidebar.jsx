@@ -92,7 +92,8 @@ export default function CartSidebar({ onClose }) {
                     <span className="w-6 text-center text-xs font-bold">{item.cantidad}</span>
                     <button
                       onClick={() => updateQty(item.key, item.cantidad + 1)}
-                      className="w-6 h-6 flex items-center justify-center hover:bg-gray-50 text-gray-500"
+                      disabled={item.cantidad >= item.stockDisponible}
+                      className="w-6 h-6 flex items-center justify-center hover:bg-gray-50 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed"
                     >
                       <Plus size={11} />
                     </button>
