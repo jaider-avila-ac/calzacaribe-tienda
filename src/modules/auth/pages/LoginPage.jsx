@@ -126,8 +126,15 @@ export default function LoginPage() {
           callback: handleGoogleCredential,
           auto_select: false,
           ux_mode: 'popup',
+          // Chrome Android usa el mediador nativo y no depende del canal popup/opener
+          // ni de cookies de terceros para devolver la credencial.
+          use_fedcm_for_button: true,
         })
-        recordGoogleAuthEvent('gis_initialized', { client_id_present: Boolean(GOOGLE_CLIENT_ID), ux_mode: 'popup' })
+        recordGoogleAuthEvent('gis_initialized', {
+          client_id_present: Boolean(GOOGLE_CLIENT_ID),
+          ux_mode: 'popup',
+          use_fedcm_for_button: true,
+        })
       } catch (error) {
         recordGoogleAuthEvent('gis_initialize_error', { name: error.name, message: error.message })
         setGoogleDiagnosticVisible(true)
