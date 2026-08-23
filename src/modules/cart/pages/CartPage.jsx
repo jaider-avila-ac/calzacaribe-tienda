@@ -123,7 +123,12 @@ export default function CartPage() {
     const idempotencyKey = getOrCreateIdempotencyKey({ direccionId: selectedDir.id, metodo: 'wompi', cart })
     try {
       const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
-      clearIdempotencyKey() // resultado definitivo: va a redirigir a la ventana de pago de Wompi
+      // NO se limpia la clave acá (ver Q-01, cuarta auditoría): obtener la URL de Wompi no es un
+      // resultado definitivo del pago, solo del PEDIDO. Si el usuario cierra la ventana, vuelve al
+      // carrito y paga de nuevo antes de que el pago se resuelva, debe reusar la MISMA clave —así
+      // el backend le devuelve el mismo pedido/URL en vez de crear uno segundo mientras el primero
+      // todavía puede aprobarse. Se limpia recién cuando el pedido llega a un estado terminal (ver
+      // PedidoResultadoPage).
       window.location.href = data.checkout_url
       // No se libera el mutex: la página está a punto de navegar fuera.
     } catch (err) {
@@ -160,7 +165,12 @@ export default function CartPage() {
         clearIdempotencyKey() // resultado definitivo (aunque desfavorable) -> un nuevo intento usa clave nueva
         return
       }
-      clearIdempotencyKey() // APPROVED/PENDING: resultado definitivo, ya seguimos a la página de resultado
+      // Q-02 (cuarta auditoría): PENDING NO es un resultado definitivo — Wompi puede aprobarlo
+      // después por webhook. Si se limpiara acá, un segundo clic tras volver al carrito (que
+      // sigue con los mismos ítems, porque el backend solo lo vacía cuando el pago se confirma)
+      // generaría una clave nueva y arriesgaría un segundo cobro real mientras el primero sigue
+      // resolviéndose. Solo se limpia para APPROVED, que sí es definitivo.
+      if (data.status === 'APPROVED') clearIdempotencyKey()
       await refreshCart()
       navigate(`/pedido/resultado?numero=${data.numero}`)
     } catch (err) {

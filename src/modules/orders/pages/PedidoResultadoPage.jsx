@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { pedidoService } from '../../../services/pedidoService'
 import { useCart } from '../../../context/CartContext'
+import { clearIdempotencyKey } from '../../../services/checkoutIntent'
 
 const POLL_MS = 2000
 const MAX_INTENTOS = 15 // ~30s
@@ -29,6 +30,11 @@ export default function PedidoResultadoPage() {
         setPedido(data)
         if (ESTADO_FINAL.has(data.estado) || intentos.current >= MAX_INTENTOS) {
           if (data.estado !== 'pendiente_pago') await refreshCart()
+          // El pedido llegó a un estado terminal (o se agotó el polling) — recién acá se sabe
+          // que la intención de pago quedó resuelta de verdad. Limpiar la clave acá, no antes
+          // (ver Q-01/Q-02, cuarta auditoría): mientras el pedido siga "pendiente_pago", volver
+          // al carrito y pagar de nuevo debe reusar la misma clave.
+          if (data.estado !== 'pendiente_pago') clearIdempotencyKey()
           return
         }
       } catch (err) {
