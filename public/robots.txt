@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://tienda.calzacaribe.com/sitemap.xml

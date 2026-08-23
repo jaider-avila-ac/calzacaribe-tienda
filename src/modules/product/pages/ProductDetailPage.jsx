@@ -59,7 +59,7 @@ function productAvailability(stock) {
   return Number(stock ?? 0) > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
 }
 
-function productSeoData(product, category) {
+function productSeoData(product, category, resenas) {
   const origin = siteOrigin()
   const url = `${origin}/producto/${product.id}`
   const image = (product.imagenes ?? []).map((img) => absoluteUrl(img.url ?? img)).filter(Boolean)
@@ -89,6 +89,15 @@ function productSeoData(product, category) {
         availability: productAvailability(product.stockTotal),
         itemCondition: 'https://schema.org/NewCondition',
       },
+      // Solo si de verdad hay reseñas — Google rechaza/penaliza aggregateRating sin reviews
+      // reales detrás (mismo criterio que ya usa la UI con "tieneResenas").
+      ...(resenas?.totalResenas > 0 ? {
+        aggregateRating: {
+          '@type': 'AggregateRating',
+          ratingValue: String(resenas.ratingPromedio),
+          reviewCount: String(resenas.totalResenas),
+        },
+      } : {}),
     },
   }
 }
@@ -242,7 +251,7 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (!product) return undefined
 
-    const seo = productSeoData(product, category)
+    const seo = productSeoData(product, category, resenas)
     document.title = seo.title
     setCanonical(seo.canonical)
     setMetaTag('description', seo.description)
@@ -254,7 +263,7 @@ export default function ProductDetailPage() {
     upsertJsonLd('product-jsonld', seo.jsonLd)
 
     return () => removeJsonLd('product-jsonld')
-  }, [product, category])
+  }, [product, category, resenas])
 
   if (loading) {
     return (
