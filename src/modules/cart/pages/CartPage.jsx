@@ -15,6 +15,22 @@ import CartItem from '../components/CartItem'
 
 const CARD_EMPTY = { numero: '', mes: '', anio: '', cvc: '', titular: '' }
 
+// La mayoría del backend manda fechas como "dd/MM/yyyy HH:mm" en zona Bogotá (ver JacksonConfig),
+// no ISO — new Date(str) directo da "Invalid Date" con ese formato (mismo problema ya visto en
+// NotificationItem.jsx). Este endpoint en particular (consultarEstado) arma la fecha a mano desde
+// una query nativa sin pasar por ese formateador, así que puede llegar en cualquiera de los dos
+// formatos según el tipo que devuelva el driver — se detecta por la barra ("/") antes de parsear.
+function parseBackendDate(str) {
+  if (!str) return new Date(NaN)
+  if (str.includes('/')) {
+    const [datePart, timePart] = str.split(' ')
+    const [day, month, year] = datePart.split('/').map(Number)
+    const [hour, minute] = (timePart ?? '0:0').split(':').map(Number)
+    return new Date(year, month - 1, day, hour, minute)
+  }
+  return new Date(str)
+}
+
 export default function CartPage() {
   const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, shippingContraEntrega, grandTotal, count, loading: cartLoading, freeShip } = useCart()
   const freeShipActive = freeShip.activo
@@ -131,7 +147,13 @@ export default function CartPage() {
     if (numeroPrevio) {
       try {
         const previo = await pedidoService.estadoPedido(numeroPrevio)
-        if (previo.estado !== 'pendiente_pago') clearIdempotencyKey()
+        // Si ya salió de "pendiente_pago" (aprobado, cancelado…) está resuelto, clave nueva. Si
+        // sigue pendiente pero el pedido es viejo (~3min+), Wompi nunca avisó nada — típico de un
+        // intento abandonado a medias en su ventana (cerrada sin terminar) — igual se libera: sin
+        // esto, un cliente que no espera los 3 minutos completos en PedidoResultadoPage quedaba
+        // atrapado con la misma referencia "cerrada" para siempre.
+        const minutosDesdeCreado = (Date.now() - parseBackendDate(previo.creado_en)) / 60000
+        if (previo.estado !== 'pendiente_pago' || minutosDesdeCreado > 3) clearIdempotencyKey()
       } catch {
         // No se pudo confirmar — se sigue con la clave que haya, no vale la pena bloquear por esto.
       }
