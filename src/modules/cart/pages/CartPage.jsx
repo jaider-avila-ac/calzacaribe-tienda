@@ -5,7 +5,7 @@ import { useCart } from '../../../context/CartContext'
 import { getStock, validateCart } from '../../../services/stockService'
 import { getProfile } from '../../../services/profileService'
 import { pedidoService } from '../../../services/pedidoService'
-import { getOrCreateIdempotencyKey, clearIdempotencyKey, getNumeroDelIntento, marcarPedidoDelIntento } from '../../../services/checkoutIntent'
+import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../../services/checkoutIntent'
 import { getAcceptanceTokens, tokenizeCard } from '../../../services/wompiService'
 import { fmt } from '../../../utils/format'
 import { siteOrigin } from '../../../utils/seo'
@@ -14,22 +14,6 @@ import FormInput from '../../../components/ui/FormInput'
 import CartItem from '../components/CartItem'
 
 const CARD_EMPTY = { numero: '', mes: '', anio: '', cvc: '', titular: '' }
-
-// La mayoría del backend manda fechas como "dd/MM/yyyy HH:mm" en zona Bogotá (ver JacksonConfig),
-// no ISO — new Date(str) directo da "Invalid Date" con ese formato (mismo problema ya visto en
-// NotificationItem.jsx). Este endpoint en particular (consultarEstado) arma la fecha a mano desde
-// una query nativa sin pasar por ese formateador, así que puede llegar en cualquiera de los dos
-// formatos según el tipo que devuelva el driver — se detecta por la barra ("/") antes de parsear.
-function parseBackendDate(str) {
-  if (!str) return new Date(NaN)
-  if (str.includes('/')) {
-    const [datePart, timePart] = str.split(' ')
-    const [day, month, year] = datePart.split('/').map(Number)
-    const [hour, minute] = (timePart ?? '0:0').split(':').map(Number)
-    return new Date(year, month - 1, day, hour, minute)
-  }
-  return new Date(str)
-}
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQty, clearCart, refreshCart, total, shipping, shippingContraEntrega, grandTotal, count, loading: cartLoading, freeShip } = useCart()
@@ -137,42 +121,20 @@ export default function CartPage() {
 
     const intent = { direccionId: selectedDir.id, metodo: 'wompi', cart }
 
-    // Si esta MISMA intención ya generó un pedido antes (ej. el cliente cerró la pestaña de Wompi
-    // en vez de volver por PedidoResultadoPage, así que la clave nunca se limpió), se comprueba su
-    // estado real antes de reusar la clave a ciegas: si ese pedido ya quedó resuelto (aprobado o
-    // cancelado), Wompi va a rechazar la referencia por "ya usada" si se reintenta con ella. Si la
-    // consulta falla (red, pedido ya no existe, etc.) se sigue igual — nunca debe ser esto lo que
-    // bloquee al cliente de comprar.
-    const numeroPrevio = getNumeroDelIntento(intent)
-    if (numeroPrevio) {
-      try {
-        const previo = await pedidoService.estadoPedido(numeroPrevio)
-        // Si ya salió de "pendiente_pago" (aprobado, cancelado…) está resuelto, clave nueva. Si
-        // sigue pendiente pero el pedido es viejo (~3min+), Wompi nunca avisó nada — típico de un
-        // intento abandonado a medias en su ventana (cerrada sin terminar) — igual se libera: sin
-        // esto, un cliente que no espera los 3 minutos completos en PedidoResultadoPage quedaba
-        // atrapado con la misma referencia "cerrada" para siempre.
-        const minutosDesdeCreado = (Date.now() - parseBackendDate(previo.creado_en)) / 60000
-        if (previo.estado !== 'pendiente_pago' || minutosDesdeCreado > 3) clearIdempotencyKey()
-      } catch {
-        // No se pudo confirmar — se sigue con la clave que haya, no vale la pena bloquear por esto.
-      }
-    }
-
-    // Persistida en sessionStorage y atada a la intención (dirección + carrito) — si la respuesta
-    // se pierde por timeout y el usuario reintenta (incluso tras recargar), reusa la MISMA clave
-    // en vez de generar una nueva cada vez (ver checkoutIntent.js e I-02 de la tercera auditoría).
+    // Persistida en sessionStorage y atada a la intención (dirección + carrito), con expiración
+    // propia a los 3 min (ver checkoutIntent.js) — si la respuesta se pierde por timeout y el
+    // usuario reintenta rápido (incluso tras recargar), reusa la MISMA clave en vez de generar una
+    // nueva cada vez (I-02, tercera auditoría); pasado ese margen, siempre se genera una nueva
+    // referencia — así nunca se reintenta contra una que Wompi ya haya cerrado.
     const idempotencyKey = getOrCreateIdempotencyKey(intent)
     try {
       const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
-      marcarPedidoDelIntento(data.numero)
       // NO se limpia la clave acá (ver Q-01, cuarta auditoría): obtener la URL de Wompi no es un
       // resultado definitivo del pago, solo del PEDIDO. Si el usuario cierra la ventana, vuelve al
       // carrito y paga de nuevo antes de que el pago se resuelva, debe reusar la MISMA clave —así
       // el backend le devuelve el mismo pedido/URL en vez de crear uno segundo mientras el primero
-      // todavía puede aprobarse. Se limpia cuando el pedido llega a un estado terminal, o cuando se
-      // agota la espera (ver PedidoResultadoPage) — y, si aun así se reusara, el chequeo de arriba
-      // es la última red de seguridad.
+      // todavía puede aprobarse. Se limpia cuando el pedido llega a un estado terminal, o expira
+      // sola a los 3 min (ver checkoutIntent.js).
       window.location.href = data.checkout_url
       // No se libera el mutex: la página está a punto de navegar fuera.
     } catch (err) {

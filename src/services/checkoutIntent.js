@@ -3,11 +3,14 @@
 // se pierda por timeout/corte de red y a una recarga de página, en vez de perderse apenas el
 // componente vuelve a montar (ver TERCERA_AUDITORIA_FUNCIONAL_E_IDEMPOTENCIA.md, hallazgo I-02).
 //
-// Solo se limpia cuando el intento llega a un resultado DEFINITIVO (redirección a Wompi exitosa,
-// o un status final de tarjeta: APPROVED/DECLINED/ERROR). Un error de red/cliente NO la limpia a
-// propósito — el siguiente intento debe reutilizar la misma clave mientras la intención (carrito,
-// dirección, método) no haya cambiado, para que el backend lo reconozca como el mismo intento.
+// Se limpia cuando el intento llega a un resultado DEFINITIVO (ver PedidoResultadoPage/CartPage),
+// pero además — comparado contra el proyecto zampy, que jamás reutiliza una referencia de Wompi
+// y por eso nunca pisa este problema — la clave expira sola pasados unos minutos aunque nada la
+// haya limpiado explícitamente: sin este límite, cualquier caso no contemplado (cerrar la pestaña
+// de Wompi a medias, probar varias veces seguidas, etc.) deja al cliente reintentando para
+// siempre con una referencia que Wompi ya cerró, sin ninguna forma de salir de ahí.
 const STORAGE_KEY = 'checkout_idempotency_v1'
+const MAX_EDAD_MS = 3 * 60 * 1000 // 3 min — mismo margen que el polling de PedidoResultadoPage
 
 function firmaIntencion({ direccionId, metodo, cart }) {
   const items = [...(cart ?? [])]
@@ -25,40 +28,15 @@ export function getOrCreateIdempotencyKey({ direccionId, metodo, cart }) {
   } catch {
     guardado = null
   }
-  if (guardado && guardado.firma === firma && guardado.key) {
-    return guardado.key
-  }
+  const vigente = guardado && guardado.firma === firma && guardado.key
+    && typeof guardado.creadoEn === 'number' && (Date.now() - guardado.creadoEn) < MAX_EDAD_MS
+  if (vigente) return guardado.key
+
   const key = crypto.randomUUID()
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ firma, key }))
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ firma, key, creadoEn: Date.now() }))
   return key
 }
 
 export function clearIdempotencyKey() {
   sessionStorage.removeItem(STORAGE_KEY)
-}
-
-// Recuerda a qué pedido quedó atado el intento actual (se llama justo después de que el checkout
-// hospedado responde) — así, si el cliente vuelve a pagar con la MISMA intención (mismo carrito/
-// dirección/método) antes de pasar por PedidoResultadoPage, se puede comprobar si ese pedido ya
-// quedó resuelto (aprobado/cancelado) antes de reusar la clave a ciegas.
-export function marcarPedidoDelIntento(numero) {
-  try {
-    const guardado = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')
-    if (guardado) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ ...guardado, numero }))
-  } catch {
-    // No hay intento guardado que anotar — no pasa nada, es solo un dato auxiliar.
-  }
-}
-
-/** Número de pedido del intento guardado, solo si la intención actual (carrito/dirección/método)
- *  coincide con la que quedó registrada — null si no hay nada guardado o cambió la intención. */
-export function getNumeroDelIntento({ direccionId, metodo, cart }) {
-  const firma = firmaIntencion({ direccionId, metodo, cart })
-  try {
-    const guardado = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')
-    if (guardado && guardado.firma === firma) return guardado.numero ?? null
-  } catch {
-    // ignorar
-  }
-  return null
 }
