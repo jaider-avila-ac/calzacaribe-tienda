@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { authService } from '../../../services/authService'
 import { useAuth } from '../../../context/AuthContext'
-import { isInAppBrowser } from '../../../utils/googleButton'
+import { isInAppBrowser, isAndroid } from '../../../utils/googleButton'
 import GoogleAuthDiagnostics from '../components/GoogleAuthDiagnostics'
 import { googleAuthEnvironment, recordGoogleAuthEvent } from '../../../utils/googleAuthDiagnostics'
 
@@ -127,13 +127,14 @@ export default function LoginPage() {
           auto_select: false,
           ux_mode: 'popup',
           // Chrome Android usa el mediador nativo y no depende del canal popup/opener
-          // ni de cookies de terceros para devolver la credencial.
-          use_fedcm_for_button: true,
+          // ni de cookies de terceros para devolver la credencial. Solo Android: en desktop
+          // este modo rompía el login (ver fix de este mismo bug).
+          use_fedcm_for_button: isAndroid(),
         })
         recordGoogleAuthEvent('gis_initialized', {
           client_id_present: Boolean(GOOGLE_CLIENT_ID),
           ux_mode: 'popup',
-          use_fedcm_for_button: true,
+          use_fedcm_for_button: isAndroid(),
         })
       } catch (error) {
         recordGoogleAuthEvent('gis_initialize_error', { name: error.name, message: error.message })

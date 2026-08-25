@@ -20,3 +20,13 @@ export function isInAppBrowser() {
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
   return IN_APP_BROWSER_PATTERNS.some((re) => re.test(ua))
 }
+
+// use_fedcm_for_button arregló el login de Google en Chrome Android (el flujo popup/COOP no
+// funcionaba ahí — ver commit del fix), pero de paso rompió el de escritorio: FedCM usa su propio
+// mediador nativo del navegador en vez del popup tradicional, y esa combinación no se comportó
+// igual en desktop. Se activa SOLO en Android — el mismo alcance del bug original — dejando
+// desktop (y iOS, que nunca estuvo roto) con el flujo de popup de siempre.
+export function isAndroid() {
+  const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
+  return /Android/i.test(ua)
+}
