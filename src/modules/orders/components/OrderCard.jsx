@@ -6,6 +6,7 @@ import { pedidoService } from '../../../services/pedidoService'
 import { useOrders } from '../../../context/OrdersContext'
 import StatusStepper from './StatusStepper'
 import DevolucionPanel from './DevolucionPanel'
+import SeguimientoDetalle from './SeguimientoDetalle'
 
 const ESTADOS_CONFIRMABLES = new Set(['enviado', 'entregado'])
 
@@ -254,6 +255,10 @@ export default function OrderCard({ order }) {
               <span>Total</span><span>{fmt(order.total)}</span>
             </div>
           </div>
+
+          {/* Se monta solo al expandir (no en cada tarjeta de la lista) — se muestra sola si
+              hay datos reales, no necesita saber si esta tienda usa Envia o no. */}
+          <SeguimientoDetalle numero={order.id} />
         </div>
       )}
     </div>

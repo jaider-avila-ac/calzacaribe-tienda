@@ -30,6 +30,13 @@ export const pedidoService = {
 
   estadoPedido: (numero) => fetchAuth(`/pedidos/${numero}`),
 
+  // PLAN_INTEGRACION_ENVIA.md, Fase 5/6 — timeline de seguimiento en tiempo real (tipo Mercado
+  // Libre). Solo existe si la tienda usa envío calculado Y ya se generó una guía real para este
+  // pedido — el backend responde 400 si no, así que el llamador debe esperar que esto falle en
+  // la mayoría de los casos (Calzacaribe, o cualquier pedido sin guía real) y tratarlo como
+  // "no hay seguimiento detallado todavía", nunca como un error que mostrarle al cliente.
+  seguimientoDetalle: (numero) => fetchAuth(`/pedidos/${numero}/seguimiento-detalle`),
+
   confirmarRecibido: (numero) => fetchAuth(`/pedidos/${numero}/confirmar-recibido`, { method: 'POST' }),
 
   crearDevolucion: (numero, { motivo, fotoUrls }) =>
