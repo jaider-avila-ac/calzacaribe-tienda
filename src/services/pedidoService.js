@@ -7,14 +7,17 @@ export const pedidoService = {
   // idempotencyKey: obligatorio — el llamador lo genera (crypto.randomUUID()) y lo conserva
   // mientras dure ese intento de pago concreto. Ver CartPage.jsx (mutex + generación) y
   // IdempotenciaGuard en el backend: sin esta clave el backend rechaza la solicitud.
-  checkoutHospedado: (direccionId, idempotencyKey) =>
+  // cotizacionToken: obligatorio para tiendas con envío calculado ('envia') — el token que
+  // devolvió getEnvioCotizacion(), congelando la cotización EXACTA que se le mostró al cliente
+  // (ver CotizacionTokenService en el backend). null para tiendas contra_entrega/fijo.
+  checkoutHospedado: (direccionId, idempotencyKey, cotizacionToken = null) =>
     fetchAuth('/pedidos/checkout', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
-      body: JSON.stringify({ direccion_id: direccionId }),
+      body: JSON.stringify({ direccion_id: direccionId, cotizacion_token: cotizacionToken }),
     }),
 
-  checkoutTarjeta: ({ direccionId, cardToken, acceptanceToken, personalAuthToken, idempotencyKey }) =>
+  checkoutTarjeta: ({ direccionId, cardToken, acceptanceToken, personalAuthToken, idempotencyKey, cotizacionToken = null }) =>
     fetchAuth('/pedidos/checkout/tarjeta', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
@@ -23,6 +26,7 @@ export const pedidoService = {
         card_token: cardToken,
         acceptance_token: acceptanceToken,
         personal_auth_token: personalAuthToken,
+        cotizacion_token: cotizacionToken,
       }),
     }),
 

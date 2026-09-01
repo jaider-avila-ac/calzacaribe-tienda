@@ -176,7 +176,7 @@ export default function CartPage() {
     // referencia — así nunca se reintenta contra una que Wompi ya haya cerrado.
     const idempotencyKey = getOrCreateIdempotencyKey(intent)
     try {
-      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
+      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey, esEnvioCalculado ? envioReal?.token : null)
       // NO se limpia la clave acá (ver Q-01, cuarta auditoría): obtener la URL de Wompi no es un
       // resultado definitivo del pago, solo del PEDIDO. Si el usuario cierra la ventana, vuelve al
       // carrito y paga de nuevo antes de que el pago se resuelva, debe reusar la MISMA clave —así
@@ -211,6 +211,7 @@ export default function CartPage() {
         acceptanceToken: acceptanceTokens.acceptance_token,
         personalAuthToken: acceptanceTokens.personal_auth_token,
         idempotencyKey,
+        cotizacionToken: esEnvioCalculado ? envioReal?.token : null,
       })
       if (data.status === 'DECLINED' || data.status === 'ERROR') {
         setPaymentError(data.mensaje)

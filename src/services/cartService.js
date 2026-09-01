@@ -82,5 +82,9 @@ export async function getEnvioCotizacion(direccionId) {
     servicio: data?.servicio ?? '',
     tiempoEstimado: data?.tiempo_estimado ?? '',
     estimado: data?.estimado ?? false,
+    // Corrección de auditoría (2026-09-01, tercera vuelta): token firmado con ESTA cotización
+    // exacta — el checkout lo exige tal cual para cobrar lo mismo que se mostró acá, en vez de
+    // volver a cotizar desde cero (ver CotizacionTokenService en el backend).
+    token: data?.token ?? null,
   }
 }
