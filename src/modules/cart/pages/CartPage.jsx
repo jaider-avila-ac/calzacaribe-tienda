@@ -397,7 +397,10 @@ export default function CartPage() {
             {esEnvioCalculado ? (
               <>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Envío{envioReal?.transportadora ? ` (${envioReal.transportadora})` : ''}</span>
+                  {/* La transportadora NO se le muestra al cliente: todavía no está decidida de
+                      verdad — el admin la elige al procesar el pedido (Fase 4), y puede ser
+                      distinta a la que se usó solo para calcular este precio. */}
+                  <span className="text-gray-500">Envío</span>
                   {!selectedDirId ? (
                     <span className="text-gray-400">Elige una dirección</span>
                   ) : envioRealLoading ? (
