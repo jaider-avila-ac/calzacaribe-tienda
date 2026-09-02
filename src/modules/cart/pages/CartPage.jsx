@@ -33,7 +33,14 @@ export default function CartPage() {
   const [envioReal, setEnvioReal] = useState(null)
   const [envioRealLoading, setEnvioRealLoading] = useState(false)
   const [envioRealError, setEnvioRealError] = useState('')
+  const [envioCotizadoPara, setEnvioCotizadoPara] = useState(null)
   const esEnvioCalculado = envioModo === 'envia'
+  const cartSignature = useMemo(() => JSON.stringify(cart.map((item) => ({
+    productId: item.productId,
+    varianteId: item.varianteId ?? item.variantId ?? null,
+    cantidad: item.cantidad,
+    precio: item.precio,
+  })).sort((a, b) => `${a.productId}:${a.varianteId}`.localeCompare(`${b.productId}:${b.varianteId}`))), [cart])
 
   // Validación de stock en tiempo real contra la API
   const [apiValidation, setApiValidation] = useState(null)
@@ -90,21 +97,33 @@ export default function CartPage() {
       return
     }
     let alive = true
+    setEnvioReal(null)
+    setEnvioCotizadoPara(null)
     setEnvioRealLoading(true)
     setEnvioRealError('')
     getEnvioCotizacion(selectedDirId)
-      .then((data) => { if (alive) setEnvioReal(data) })
+      .then((data) => {
+        if (alive) {
+          setEnvioReal(data)
+          setEnvioCotizadoPara(cartSignature)
+        }
+      })
       .catch((err) => { if (alive) setEnvioRealError(err.message || 'No se pudo calcular el envío') })
       .finally(() => { if (alive) setEnvioRealLoading(false) })
     return () => { alive = false }
-  }, [esEnvioCalculado, selectedDirId])
+  }, [esEnvioCalculado, selectedDirId, cartSignature])
 
   const reintentarEnvioReal = () => {
     if (!selectedDirId) return
     setEnvioRealLoading(true)
+    setEnvioReal(null)
+    setEnvioCotizadoPara(null)
     setEnvioRealError('')
     getEnvioCotizacion(selectedDirId)
-      .then(setEnvioReal)
+      .then((data) => {
+        setEnvioReal(data)
+        setEnvioCotizadoPara(cartSignature)
+      })
       .catch((err) => setEnvioRealError(err.message || 'No se pudo calcular el envío'))
       .finally(() => setEnvioRealLoading(false))
   }
@@ -146,7 +165,8 @@ export default function CartPage() {
   const hasCartIssues = cartValidated.some((i) => i.isOutOfStock || i.isOverStock)
   // En tiendas con envío calculado, el precio real debe estar listo antes de dejar pagar — el
   // cliente no debe confirmar una compra sin saber cuánto le cobrarán de envío.
-  const envioListoParaCheckout = !esEnvioCalculado || (envioReal !== null && !envioRealLoading)
+  const envioListoParaCheckout = !esEnvioCalculado
+    || (envioReal !== null && !envioRealLoading && envioCotizadoPara === cartSignature)
   const canCheckout = !hasCartIssues && !validating && selectedDir !== null && hasDocumento && envioListoParaCheckout
 
   const cardValid =
