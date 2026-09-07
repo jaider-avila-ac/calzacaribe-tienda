@@ -57,9 +57,11 @@ export async function uploadFotoDevolucion(file, numeroPedido) {
   const fd = new FormData()
   fd.append('file', file)
   fd.append('numeroPedido', numeroPedido)
+  // Igual criterio que fetchAuth en api.js: con token real, el JWT ya identifica la tienda —
+  // mandar X-Tenant-Id junto a él arriesga un 403 si el respaldo de dev local no coincide.
   const res = await fetch(`${BASE}/upload/devolucion`, {
     method: 'POST',
-    headers: { 'X-Tenant-Id': '1', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: token ? { Authorization: `Bearer ${token}` } : { 'X-Tenant-Id': import.meta.env.VITE_TENANT_ID || '1' },
     body: fd,
   })
   const data = await res.json().catch(() => ({}))
