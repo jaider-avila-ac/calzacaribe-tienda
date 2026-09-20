@@ -68,3 +68,23 @@ export async function removeItem(itemId) {
 export async function clearCarrito() {
   return normalizeCarrito(await fetchAuth('/carrito', { method: 'DELETE' }))
 }
+
+// PLAN_INTEGRACION_ENVIA.md, Fase 3/6 — precio de envío REAL calculado con Envia, solo para
+// tiendas en modo 'envia' (ver getTiendaConfig().envio_modo). El backend garantiza un precio
+// sí o sí (cae a un costo estimado si ninguna transportadora responde), así que este endpoint
+// no debería fallar en condiciones normales — pero si la dirección aún no tiene código postal
+// (guardada antes de que la tienda activara este modo) puede devolver un error claro.
+export async function getEnvioCotizacion(direccionId) {
+  const data = await fetchAuth(`/carrito/envio-cotizacion?direccionId=${direccionId}`)
+  return {
+    precio: Math.round((data?.precio_centavos ?? 0) / 100),
+    transportadora: data?.transportadora ?? '',
+    servicio: data?.servicio ?? '',
+    tiempoEstimado: data?.tiempo_estimado ?? '',
+    estimado: data?.estimado ?? false,
+    // Corrección de auditoría (2026-09-01, tercera vuelta): token firmado con ESTA cotización
+    // exacta — el checkout lo exige tal cual para cobrar lo mismo que se mostró acá, en vez de
+    // volver a cotizar desde cero (ver CotizacionTokenService en el backend).
+    token: data?.token ?? null,
+  }
+}

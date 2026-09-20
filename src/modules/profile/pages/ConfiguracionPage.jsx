@@ -13,7 +13,7 @@ import {
   saveProfile,
   updateDireccion,
 } from '../../../services/profileService'
-import { DEPARTAMENTOS, municipiosDe } from '../../../data/colombiaGeo'
+import { getColombiaGeo } from '../../../services/geoService'
 import { useAuth } from '../../../context/AuthContext'
 
 const TIPOS_DOC = ['CC', 'CE', 'TI', 'NIT', 'Pasaporte']
@@ -27,6 +27,7 @@ const ADDR_EMPTY = {
   apartamento: '',
   contactoNombre: '',
   contactoTelefono: '',
+  codigoPostal: '',
 }
 
 function SectionCard({ title, children }) {
@@ -124,6 +125,13 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
   const [form, setForm] = useState(inicial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [geo, setGeo] = useState({})
+
+  useEffect(() => {
+    let alive = true
+    getColombiaGeo().then((data) => { if (alive) setGeo(data) })
+    return () => { alive = false }
+  }, [])
 
   const set = (key) => (e) => setForm((prev) => ({ ...prev, [key]: e.target.value }))
 
@@ -131,7 +139,8 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
   // al departamento anterior), así que se limpia para forzar a elegir uno nuevo.
   const setDepartamento = (e) => setForm((prev) => ({ ...prev, departamento: e.target.value, municipio: '' }))
 
-  const municipios = municipiosDe(form.departamento)
+  const departamentos = Object.keys(geo)
+  const municipios = geo[form.departamento] ?? []
   // Si la dirección ya tenía guardado un municipio que no está en la lista (dato
   // viejo escrito a mano antes de este cambio), se conserva como opción extra en
   // vez de perderlo silenciosamente al editar.
@@ -147,6 +156,9 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
     if (!form.barrio.trim()) return setError('El barrio es obligatorio')
     if (!form.contactoNombre.trim()) return setError('El nombre de contacto es obligatorio')
     if (!form.contactoTelefono.trim()) return setError('El teléfono de contacto es obligatorio')
+    // El código postal solo se exige para tiendas que calculan el envío real (modo 'envia') —
+    // el backend es quien decide eso (ver TiendaClientePerfilService.validarCamposParaEnvia);
+    // acá no se bloquea de más para no afectar tiendas como Calzacaribe que no lo necesitan.
 
     setSaving(true)
     setError('')
@@ -172,7 +184,7 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
         <FormField label="Departamento">
           <FormSelect value={form.departamento} onChange={setDepartamento}>
             <option value="">Selecciona un departamento</option>
-            {DEPARTAMENTOS.map((dep) => <option key={dep}>{dep}</option>)}
+            {departamentos.map((dep) => <option key={dep}>{dep}</option>)}
           </FormSelect>
         </FormField>
         <FormField label="Municipio / Localidad">
@@ -186,6 +198,9 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
         </FormField>
         <FormField label="Apartamento / Casa (opcional)">
           <FormInput value={form.apartamento} onChange={set('apartamento')} placeholder="Ej: 201" />
+        </FormField>
+        <FormField label="Código postal">
+          <FormInput value={form.codigoPostal} onChange={set('codigoPostal')} placeholder="Ej: 110111" />
         </FormField>
       </div>
 
@@ -285,6 +300,7 @@ function DireccionesSection({ direcciones, onDireccionesSaved }) {
                   </p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {[direccion.barrio, direccion.municipio, direccion.departamento].filter(Boolean).join(', ')}
+                    {direccion.codigoPostal ? ` · CP ${direccion.codigoPostal}` : ''}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {direccion.contactoNombre} · +57 {direccion.contactoTelefono}

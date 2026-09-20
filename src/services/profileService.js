@@ -22,6 +22,7 @@ function normalizeDireccion(d = {}) {
     apartamento: d.apartamento ?? '',
     contactoNombre: d.contacto_nombre ?? d.contactoNombre ?? '',
     contactoTelefono: d.contacto_telefono ?? d.contactoTelefono ?? '',
+    codigoPostal: d.codigo_postal ?? d.codigoPostal ?? '',
   }
 }
 
@@ -64,6 +65,7 @@ function toDireccionPayload(data = {}) {
     apartamento: data.apartamento ?? '',
     contacto_nombre: data.contactoNombre ?? '',
     contacto_telefono: data.contactoTelefono ?? '',
+    codigo_postal: data.codigoPostal ?? '',
   }
 }
 

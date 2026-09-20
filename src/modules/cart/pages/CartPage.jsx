@@ -4,6 +4,8 @@ import { ShoppingBag, AlertCircle, MapPin, ChevronRight, Loader2, CreditCard, Ex
 import { useCart } from '../../../context/CartContext'
 import { getStock, validateCart } from '../../../services/stockService'
 import { getProfile } from '../../../services/profileService'
+import { getEnvioCotizacion } from '../../../services/cartService'
+import { getTiendaConfig } from '../../../services/tiendaConfigService'
 import { pedidoService } from '../../../services/pedidoService'
 import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../../services/checkoutIntent'
 import { getAcceptanceTokens, tokenizeCard } from '../../../services/wompiService'
@@ -24,6 +26,21 @@ export default function CartPage() {
   const [selectedDirId, setSelectedDirId] = useState(null)
   const selectedDir = direcciones.find((d) => d.id === selectedDirId) ?? null
   const [hasDocumento, setHasDocumento] = useState(true) // true hasta confirmar lo contrario: evita bloquear el botón mientras carga
+
+  // PLAN_INTEGRACION_ENVIA.md, Fase 3/6 — Calzacaribe (contra_entrega) sigue exactamente igual
+  // que siempre: el bloque de envío real solo se activa cuando la tienda está en modo 'envia'.
+  const [envioModo, setEnvioModo] = useState(null) // null mientras carga = no se activa nada
+  const [envioReal, setEnvioReal] = useState(null)
+  const [envioRealLoading, setEnvioRealLoading] = useState(false)
+  const [envioRealError, setEnvioRealError] = useState('')
+  const [envioCotizadoPara, setEnvioCotizadoPara] = useState(null)
+  const esEnvioCalculado = envioModo === 'envia'
+  const cartSignature = useMemo(() => JSON.stringify(cart.map((item) => ({
+    productId: item.productId,
+    varianteId: item.varianteId ?? item.variantId ?? null,
+    cantidad: item.cantidad,
+    precio: item.precio,
+  })).sort((a, b) => `${a.productId}:${a.varianteId}`.localeCompare(`${b.productId}:${b.varianteId}`))), [cart])
 
   // Validación de stock en tiempo real contra la API
   const [apiValidation, setApiValidation] = useState(null)
@@ -65,6 +82,53 @@ export default function CartPage() {
   }, [])
 
   useEffect(() => {
+    let alive = true
+    getTiendaConfig().then((data) => { if (alive) setEnvioModo(data?.envio_modo ?? 'contra_entrega') })
+    return () => { alive = false }
+  }, [])
+
+  // Cotización real: solo corre en tiendas con envío calculado, y solo una vez elegida la
+  // dirección (Envia necesita el destino para calcular). Se vuelve a pedir si cambia la
+  // dirección — nunca se reusa la cotización de otra dirección.
+  useEffect(() => {
+    if (!esEnvioCalculado || !selectedDirId) {
+      setEnvioReal(null)
+      setEnvioRealError('')
+      return
+    }
+    let alive = true
+    setEnvioReal(null)
+    setEnvioCotizadoPara(null)
+    setEnvioRealLoading(true)
+    setEnvioRealError('')
+    getEnvioCotizacion(selectedDirId)
+      .then((data) => {
+        if (alive) {
+          setEnvioReal(data)
+          setEnvioCotizadoPara(cartSignature)
+        }
+      })
+      .catch((err) => { if (alive) setEnvioRealError(err.message || 'No se pudo calcular el envío') })
+      .finally(() => { if (alive) setEnvioRealLoading(false) })
+    return () => { alive = false }
+  }, [esEnvioCalculado, selectedDirId, cartSignature])
+
+  const reintentarEnvioReal = () => {
+    if (!selectedDirId) return
+    setEnvioRealLoading(true)
+    setEnvioReal(null)
+    setEnvioCotizadoPara(null)
+    setEnvioRealError('')
+    getEnvioCotizacion(selectedDirId)
+      .then((data) => {
+        setEnvioReal(data)
+        setEnvioCotizadoPara(cartSignature)
+      })
+      .catch((err) => setEnvioRealError(err.message || 'No se pudo calcular el envío'))
+      .finally(() => setEnvioRealLoading(false))
+  }
+
+  useEffect(() => {
     if (cart.length === 0) { setApiValidation([]); return }
     setValidating(true)
     validateCart(cart).then((results) => {
@@ -99,7 +163,11 @@ export default function CartPage() {
   }), [cart, apiValidation])
 
   const hasCartIssues = cartValidated.some((i) => i.isOutOfStock || i.isOverStock)
-  const canCheckout = !hasCartIssues && !validating && selectedDir !== null && hasDocumento
+  // En tiendas con envío calculado, el precio real debe estar listo antes de dejar pagar — el
+  // cliente no debe confirmar una compra sin saber cuánto le cobrarán de envío.
+  const envioListoParaCheckout = !esEnvioCalculado
+    || (envioReal !== null && !envioRealLoading && envioCotizadoPara === cartSignature)
+  const canCheckout = !hasCartIssues && !validating && selectedDir !== null && hasDocumento && envioListoParaCheckout
 
   const cardValid =
     card.numero.replace(/\s+/g, '').length >= 13 &&
@@ -128,7 +196,7 @@ export default function CartPage() {
     // referencia — así nunca se reintenta contra una que Wompi ya haya cerrado.
     const idempotencyKey = getOrCreateIdempotencyKey(intent)
     try {
-      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey)
+      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey, esEnvioCalculado ? envioReal?.token : null)
       // NO se limpia la clave acá (ver Q-01, cuarta auditoría): obtener la URL de Wompi no es un
       // resultado definitivo del pago, solo del PEDIDO. Si el usuario cierra la ventana, vuelve al
       // carrito y paga de nuevo antes de que el pago se resuelva, debe reusar la MISMA clave —así
@@ -163,6 +231,7 @@ export default function CartPage() {
         acceptanceToken: acceptanceTokens.acceptance_token,
         personalAuthToken: acceptanceTokens.personal_auth_token,
         idempotencyKey,
+        cotizacionToken: esEnvioCalculado ? envioReal?.token : null,
       })
       if (data.status === 'DECLINED' || data.status === 'ERROR') {
         setPaymentError(data.mensaje)
@@ -215,13 +284,18 @@ export default function CartPage() {
     )
   }
 
+  // Con envío calculado, el precio real (cuando ya se cotizó) reemplaza al genérico que
+  // devuelve el carrito — Calzacaribe (contra_entrega) nunca entra por esta rama.
+  const envioMostrado = esEnvioCalculado && envioReal ? envioReal.precio : shipping
+  const grandTotalMostrado = esEnvioCalculado && envioReal ? total + envioReal.precio : grandTotal
+
   const waMessage = encodeURIComponent(
     'Pedido Calzacaribe\n\n' +
     cart.map((i) => {
       const vars = Object.entries(i.variantes ?? {}).map(([k, v]) => `${k}: ${v}`).join(', ')
       return `• ${i.nombre}${vars ? ` (${vars})` : ''} ×${i.cantidad} → ${fmt(i.subtotal)}\n  ${siteOrigin()}/producto/${i.productId}`
     }).join('\n') +
-    `\n\nSubtotal: ${fmt(total)}\nEnvío: ${shippingContraEntrega ? 'Contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}\nTotal: ${fmt(grandTotal)}`
+    `\n\nSubtotal: ${fmt(total)}\nEnvío: ${shippingContraEntrega ? 'Contra entrega' : envioMostrado === 0 ? 'Gratis' : fmt(envioMostrado)}\nTotal: ${fmt(grandTotalMostrado)}`
   )
 
   return (
@@ -340,13 +414,53 @@ export default function CartPage() {
               <span className="text-gray-500">Subtotal ({count} art.)</span>
               <span className="font-semibold">{fmt(total)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Envío</span>
-              <span className={`font-semibold ${shipping === 0 ? 'text-accent' : ''}`}>
-                {shippingContraEntrega ? 'Pagas contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}
-              </span>
-            </div>
-            {shippingContraEntrega && (
+
+            {esEnvioCalculado ? (
+              <>
+                <div className="flex justify-between">
+                  {/* La transportadora NO se le muestra al cliente: todavía no está decidida de
+                      verdad — el admin la elige al procesar el pedido (Fase 4), y puede ser
+                      distinta a la que se usó solo para calcular este precio. */}
+                  <span className="text-gray-500">Envío</span>
+                  {!selectedDirId ? (
+                    <span className="text-gray-400">Elige una dirección</span>
+                  ) : envioRealLoading ? (
+                    <span className="text-gray-400 flex items-center gap-1"><Loader2 size={12} className="animate-spin" /> Calculando…</span>
+                  ) : envioRealError ? (
+                    <span className="text-red-500">No se pudo calcular</span>
+                  ) : (
+                    <span className={`font-semibold ${envioReal?.precio === 0 ? 'text-accent' : ''}`}>
+                      {envioReal?.precio === 0 ? 'Gratis' : fmt(envioReal?.precio ?? 0)}
+                    </span>
+                  )}
+                </div>
+                {envioReal?.tiempoEstimado && (
+                  <p className="text-xs text-gray-400 -mt-1">
+                    Llega en aproximadamente {envioReal.tiempoEstimado}
+                  </p>
+                )}
+                {envioRealError && (
+                  <div className="-mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs text-red-500">{envioRealError}</p>
+                    <button
+                      type="button"
+                      onClick={reintentarEnvioReal}
+                      className="text-xs font-bold text-black underline flex-shrink-0"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Envío</span>
+                <span className={`font-semibold ${shipping === 0 ? 'text-accent' : ''}`}>
+                  {shippingContraEntrega ? 'Pagas contra entrega' : shipping === 0 ? 'Gratis' : fmt(shipping)}
+                </span>
+              </div>
+            )}
+            {shippingContraEntrega && !esEnvioCalculado && (
               <p className="text-xs text-gray-400 -mt-1">
                 El costo del envío lo pagas directo al transportador cuando recibes tu pedido.
               </p>
@@ -355,7 +469,7 @@ export default function CartPage() {
 
           <div className="border-t border-gray-100 pt-3 flex justify-between">
             <span className="font-bold text-black">Total</span>
-            <span className="text-xl font-black text-black">{fmt(grandTotal)}</span>
+            <span className="text-xl font-black text-black">{fmt(grandTotalMostrado)}</span>
           </div>
 
           {/* Método de pago */}
