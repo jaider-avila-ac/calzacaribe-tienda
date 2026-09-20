@@ -2,7 +2,9 @@ import { tokenStore } from './tokenStore'
 import { recordGoogleAuthEvent } from '../utils/googleAuthDiagnostics'
 
 const BASE  = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/public/auth/tienda`
-const TND   = '1'
+// Ver el comentario de TND en api.js — mismo respaldo de dev local, mismo criterio: nunca se
+// manda junto con un JWT real (ver logout() abajo).
+const TND   = import.meta.env.VITE_TENANT_ID || '1'
 
 async function post(path, body, { timeoutMs = 20000, diagnostic = false } = {}) {
   const controller = new AbortController()
@@ -36,9 +38,11 @@ async function post(path, body, { timeoutMs = 20000, diagnostic = false } = {}) 
 async function logout() {
   const token = tokenStore.getToken()
   if (!token) return
+  // Sin X-Tenant-Id a propósito: el JWT ya identifica la tienda, y mandar acá el respaldo de
+  // dev local junto con un token real arriesgaría un 403 si algún día no coinciden.
   await fetch(`${BASE}/logout`, {
     method: 'POST',
-    headers: { 'X-Tenant-Id': TND, Authorization: `Bearer ${token}` },
+    headers: { Authorization: `Bearer ${token}` },
   }).catch(() => {})
 }
 

@@ -1,7 +1,12 @@
 import { tokenStore } from './tokenStore'
 
 const BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/public`
-const TND  = '1'
+// Respaldo SOLO para desarrollo local (Vite sirve en un puerto propio, así que el Host que ve
+// el backend es el del backend mismo, nunca coincide con ningún dominio real registrado) — el
+// backend (TenantInterceptor) siempre prefiere el dominio real de la solicitud sobre esto, y en
+// producción, con el dominio de cada tienda correctamente registrado, este valor nunca se usa.
+// Configurar VITE_TENANT_ID al duplicar este proyecto para otra tienda — NUNCA hardcodear el id.
+const TND = import.meta.env.VITE_TENANT_ID || '1'
 
 // Se lanza cuando el fetch nunca llegó a obtener respuesta (backend caído, sin red, timeout) —
 // a diferencia de un Error normal, que significa que el servidor SÍ respondió (con un status de error).
@@ -47,12 +52,16 @@ export async function fetchPublic(path) {
 
 export async function fetchAuth(path, options = {}) {
   const token = tokenStore.getToken()
+  // Con sesión iniciada, el tenant lo determina EXCLUSIVAMENTE el JWT (firmado, no falsificable
+  // desde el navegador) — el backend rechaza con 403 cualquier X-Tenant-Id que no coincida
+  // exactamente con el del token, así que mandarlo acá solo arriesgaría romper la sesión si
+  // este valor local alguna vez queda desactualizado. Sin sesión, sigue siendo el respaldo de
+  // dev local de siempre.
   const res = await doFetch(`${BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-Tenant-Id': TND,
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : { 'X-Tenant-Id': TND }),
       ...options.headers,
     },
   })
