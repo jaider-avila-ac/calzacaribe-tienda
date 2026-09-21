@@ -21,10 +21,18 @@ import ConfiguracionPage from './modules/profile/pages/ConfiguracionPage'
 import NotificationsPage from './modules/notifications/pages/NotificationsPage'
 import FavoritesPage from './modules/favorites/pages/FavoritesPage'
 import SearchPage from './modules/search/pages/SearchPage'
+import CookieConsentBanner from './components/layout/CookieConsentBanner'
+import { registrarVisita } from './services/visitaService'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
   useLayoutEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
+
+function PageTracker() {
+  const { pathname } = useLocation()
+  useLayoutEffect(() => { registrarVisita('pagina_vista') }, [pathname])
   return null
 }
 
@@ -37,6 +45,8 @@ export default function App() {
         <OrdersProvider>
         <BrowserRouter>
           <ScrollToTop />
+          <PageTracker />
+          <CookieConsentBanner />
           <Routes>
             {/* Auth — fuera del layout principal */}
             <Route path="/login" element={<LoginPage />} />

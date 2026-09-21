@@ -1,4 +1,5 @@
 import { fetchAuth } from './api'
+import { registrarVisita } from './visitaService'
 
 function normalizeItem(row) {
   const variantes = {}
@@ -48,10 +49,12 @@ export async function getCarrito() {
 }
 
 export async function addItem({ productId, talla, color, cantidad = 1 }) {
-  return normalizeCarrito(await fetchAuth('/carrito/items', {
+  const carrito = normalizeCarrito(await fetchAuth('/carrito/items', {
     method: 'POST',
     body: JSON.stringify({ prd_id: productId, talla: talla ?? null, color: color ?? null, cantidad }),
   }))
+  registrarVisita('agregar_carrito', 'producto', productId)
+  return carrito
 }
 
 export async function updateItem(itemId, cantidad) {

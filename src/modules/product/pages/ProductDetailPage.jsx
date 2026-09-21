@@ -11,6 +11,7 @@ import { getCategoryById } from '../../../services/categoryService'
 import { getStock, initStockFromProduct } from '../../../services/stockService'
 import { addReciente } from '../../../services/recentService'
 import { registrarEvento } from '../../../services/eventoService'
+import { registrarVisita } from '../../../services/visitaService'
 import ProductCard from '../../../components/ui/ProductCard'
 import { useCart } from '../../../context/CartContext'
 import { useAuth } from '../../../context/AuthContext'
@@ -223,6 +224,7 @@ export default function ProductDetailPage() {
         initStockFromProduct(p)
         addReciente(p)
         registrarEvento('vista_producto', 'producto', p.id)
+        registrarVisita('vista_producto', 'producto', p.id)
         const [cat, rel, res, preg] = await Promise.all([
           getCategoryById(p.categoriaId),
           getRelatedProducts(p.id, p.categoriaId, 4),
