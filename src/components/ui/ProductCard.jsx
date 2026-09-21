@@ -6,11 +6,15 @@ import { useWishlist } from '../../context/WishlistContext'
 import { useInViewOnce } from '../../hooks/useInViewOnce'
 
 export default function ProductCard({ product }) {
-  const { id, nombre, marca, imagenes, precio, precioFinal, descuento, etiquetas, tallas, ratingPromedio, totalResenas } = product
+  const { id, slug, nombre, marca, imagenes, precio, precioFinal, descuento, etiquetas, tallas, ratingPromedio, totalResenas } = product
   const finalPrice = precioFinal ?? precio
   const isNew = etiquetas?.includes('nuevo')
   const hasStock = tallas?.some((t) => t.stock > 0) ?? true
   const tieneResenas = Boolean(totalResenas > 0)
+  // URL "bonita" con el slug (ej. /producto/tenis-running-negro) en vez del id numérico — el
+  // backend acepta ambos (ver PublicCatalogService.getProductoByIdOrSlug), así que un producto
+  // sin slug todavía (no debería pasar, es NOT NULL) simplemente cae al id.
+  const href = `/producto/${slug || id}`
 
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth()
@@ -22,7 +26,7 @@ export default function ProductCard({ product }) {
     e.preventDefault()
     e.stopPropagation()
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/producto/${id}` } })
+      navigate('/login', { state: { from: href } })
       return
     }
     toggle(id)
@@ -31,7 +35,7 @@ export default function ProductCard({ product }) {
   return (
     <Link
       ref={inViewRef}
-      to={`/producto/${id}`}
+      to={href}
       className={`group block bg-white overflow-hidden hover:shadow-md transition-[box-shadow,opacity,transform] duration-500 ease-out ${
         inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}

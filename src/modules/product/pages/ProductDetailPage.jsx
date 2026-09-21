@@ -62,7 +62,7 @@ function productAvailability(stock) {
 
 function productSeoData(product, category, resenas) {
   const origin = siteOrigin()
-  const url = `${origin}/producto/${product.id}`
+  const url = `${origin}/producto/${product.slug || product.id}`
   const image = (product.imagenes ?? []).map((img) => absoluteUrl(img.url ?? img)).filter(Boolean)
   const basePrice = product.precioFinal ?? product.precio
   const description = plainText(product.descripcion, `${product.nombre} en Calzacaribe.`)
@@ -450,7 +450,7 @@ export default function ProductDetailPage() {
     `Hola, quiero pedir:\n*${product.nombre}*\n` +
     Object.entries(seleccionadas).map(([k, v]) => `${k}: ${v}`).join('\n') +
     `\nPrecio: ${fmt(finalPrice)}` +
-    `\n${siteOrigin()}/producto/${product.id}`
+    `\n${siteOrigin()}/producto/${product.slug || product.id}`
   )
 
   const allRequiredSelected = variantes
