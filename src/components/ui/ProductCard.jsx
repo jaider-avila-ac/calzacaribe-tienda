@@ -80,7 +80,7 @@ export default function ProductCard({ product }) {
 
       {/* Info */}
       <div className="p-3">
-        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">{marca}</p>
+        <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide truncate min-h-[14px]">{marca}</p>
 
         <h3 className="text-xs font-medium text-gray-800 mt-0.5 line-clamp-2 leading-snug min-h-[33px] group-hover:text-black transition-colors">
           {nombre}
@@ -101,7 +101,7 @@ export default function ProductCard({ product }) {
           )}
         </div>
 
-        <div className="mt-2">
+        <div className="mt-2 min-h-[34px] flex flex-col justify-center">
           {descuento > 0 ? (
             <div className="flex items-baseline gap-1.5 flex-wrap">
               <p className="text-sm font-black text-accent">{fmt(finalPrice)}</p>
