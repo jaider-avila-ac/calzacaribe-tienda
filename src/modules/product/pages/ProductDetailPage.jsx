@@ -14,6 +14,7 @@ import { registrarEvento } from '../../../services/eventoService'
 import { registrarVisita } from '../../../services/visitaService'
 import ProductCard from '../../../components/ui/ProductCard'
 import ShareMenu from '../../../components/ui/ShareMenu'
+import GuiaTallasModal from '../../../components/ui/GuiaTallasModal'
 import { useCart } from '../../../context/CartContext'
 import { useAuth } from '../../../context/AuthContext'
 import { useWishlist } from '../../../context/WishlistContext'
@@ -200,6 +201,7 @@ export default function ProductDetailPage() {
   const [errorPregunta, setErrorPregunta] = useState('')
   const [editandoPregId, setEditandoPregId] = useState(null)
   const [textoEditado, setTextoEditado] = useState('')
+  const [showGuiaTallas, setShowGuiaTallas] = useState(false)
 
   useEffect(() => {
     setLoading(true)
@@ -611,7 +613,10 @@ export default function ProductDetailPage() {
                     )}
                   </p>
                   {variante.tipo === 'talla' && (
-                    <button className="text-xs text-gray-400 hover:text-black transition-colors underline underline-offset-2">
+                    <button
+                      onClick={() => setShowGuiaTallas(true)}
+                      className="text-xs text-gray-400 hover:text-black transition-colors underline underline-offset-2"
+                    >
                       Guía de tallas
                     </button>
                   )}
@@ -970,6 +975,8 @@ export default function ProductDetailPage() {
           </div>
         </section>
       )}
+
+      {showGuiaTallas && <GuiaTallasModal onClose={() => setShowGuiaTallas(false)} />}
     </div>
   )
 }
