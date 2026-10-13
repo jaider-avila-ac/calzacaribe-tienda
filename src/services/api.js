@@ -1,10 +1,12 @@
 import { tokenStore } from './tokenStore'
 
 const BASE = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/v1/public`
-// Respaldo SOLO para desarrollo local (Vite sirve en un puerto propio, así que el Host que ve
-// el backend es el del backend mismo, nunca coincide con ningún dominio real registrado) — el
-// backend (TenantInterceptor) siempre prefiere el dominio real de la solicitud sobre esto, y en
-// producción, con el dominio de cada tienda correctamente registrado, este valor nunca se usa.
+// X-Tenant-Id es SOLO para desarrollo local (Vite en su propio puerto, sin el proxy de
+// nginx.conf de por medio) — el backend (TenantInterceptor) siempre prefiere el dominio real de
+// la solicitud sobre esto. En producción, VITE_API_URL debe apuntar al PROPIO dominio de esta
+// tienda (nginx.conf proxea /api/ al backend compartido desde ahí) para que el backend sí pueda
+// resolver el tenant por dominio — nunca directo al backend compartido, porque ahí el header de
+// abajo deja de ser un respaldo y pasa a ser la única fuente, algo que cualquiera puede cambiar.
 // Configurar VITE_TENANT_ID al duplicar este proyecto para otra tienda — NUNCA hardcodear el id.
 const TND = import.meta.env.VITE_TENANT_ID || '1'
 
