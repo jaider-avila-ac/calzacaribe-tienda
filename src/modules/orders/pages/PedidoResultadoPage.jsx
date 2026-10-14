@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 import { pedidoService } from '../../../services/pedidoService'
 import { useCart } from '../../../context/CartContext'
 import { clearIdempotencyKey } from '../../../services/checkoutIntent'
 
+// Tras confirmar el pago, cuánto se deja ver "¡Compra confirmada!" antes de llevar sola a
+// Mis compras — ni instantáneo (se sentiría como un salto brusco) ni tan largo como para que
+// quien ya vio el check se quede esperando sin saber que la página lo va a mover.
+const REDIRECT_EXITO_MS = 1800
 const POLL_MS = 3000
 // Nequi/PSE pueden tardar varios minutos en confirmarse (el cliente tiene que abrir su app y
 // aprobar) — 30s (el límite anterior) cortaba el polling mientras el pago todavía podía llegar,
@@ -18,11 +22,20 @@ const ESTADO_FINAL = new Set(['pagado', 'preparando', 'enviado', 'entregado', 'c
 export default function PedidoResultadoPage() {
   const [searchParams] = useSearchParams()
   const numero = searchParams.get('numero')
+  const navigate = useNavigate()
   const { refreshCart } = useCart()
   const [pedido, setPedido] = useState(null)
   const [error, setError] = useState('')
   const [agotado, setAgotado] = useState(false)
   const intentos = useRef(0)
+
+  // Pago confirmado (cualquier estado que no sea "sigue esperando" ni "no se aprobó") — se va
+  // solo a Mis compras, en vez de dejar que la persona tenga que darle clic al botón.
+  useEffect(() => {
+    if (!pedido || pedido.estado === 'pendiente_pago' || pedido.estado === 'cancelado') return
+    const t = setTimeout(() => navigate('/mis-compras'), REDIRECT_EXITO_MS)
+    return () => clearTimeout(t)
+  }, [pedido, navigate])
 
   useEffect(() => {
     if (!numero) { setError('Pedido no especificado'); return }
