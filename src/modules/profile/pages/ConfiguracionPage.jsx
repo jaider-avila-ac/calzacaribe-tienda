@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { AlertCircle, Check, Eye, EyeOff, LogOut, MapPin, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { AlertCircle, Bell, Check, Eye, EyeOff, Lock, LogOut, MapPin, Pencil, Plus, ShoppingBag, Trash2, User } from 'lucide-react'
 import FormField from '../../../components/ui/FormField'
 import FormInput from '../../../components/ui/FormInput'
 import FormSelect from '../../../components/ui/FormSelect'
@@ -53,7 +53,7 @@ function SaveButton({ saved, saving }) {
   )
 }
 
-function PersonalSection({ profile, onProfileSaved }) {
+function PersonalSection({ profile, onProfileSaved, onSaved }) {
   const [form, setForm] = useState(profile)
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -80,6 +80,7 @@ function PersonalSection({ profile, onProfileSaved }) {
     try {
       const updated = await saveProfile(form)
       onProfileSaved(updated)
+      onSaved?.(updated)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
     } catch (err) {
@@ -248,14 +249,16 @@ function DireccionForm({ inicial = ADDR_EMPTY, onSave, onCancel }) {
   )
 }
 
-function DireccionesSection({ direcciones, onDireccionesSaved }) {
+function DireccionesSection({ direcciones, onDireccionesSaved, onAdded }) {
   const [modo, setModo] = useState(null)
   const [error, setError] = useState('')
 
   const handleAdd = async (data) => {
     setError('')
-    onDireccionesSaved(await addDireccion(data))
+    const actualizadas = await addDireccion(data)
+    onDireccionesSaved(actualizadas)
     setModo(null)
+    onAdded?.(actualizadas)
   }
 
   const handleEdit = async (id, data) => {
@@ -501,7 +504,24 @@ function CerrarSesionSection() {
   )
 }
 
+// Categorías — antes todo esto era un solo scroll largo con las 5 secciones apiladas.
+const TABS = [
+  { key: 'cuenta', label: 'Mi cuenta', icon: User },
+  { key: 'direcciones', label: 'Direcciones', icon: MapPin },
+  { key: 'preferencias', label: 'Preferencias', icon: Bell },
+  { key: 'seguridad', label: 'Seguridad', icon: Lock },
+]
+
 export default function ConfiguracionPage() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Si llegó desde el carrito porque le faltaba la dirección o la cédula (ver CartPage), al
+  // completar justo eso vuelve solo al carrito — no tiene que acordarse de volver él mismo.
+  const volverAlCarrito = searchParams.get('volver') === 'carrito'
+  const falta = searchParams.get('falta')
+  const tabInicial = TABS.some((t) => t.key === searchParams.get('tab')) ? searchParams.get('tab') : 'cuenta'
+
+  const [activeTab, setActiveTab] = useState(tabInicial)
   const [profile, setProfile] = useState(EMPTY_PROFILE)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -529,10 +549,49 @@ export default function ConfiguracionPage() {
     setProfile((prev) => ({ ...prev, direcciones }))
   }
 
+  // Solo vuelve si de verdad ya quedó resuelto lo que faltaba — si el usuario solo cambió el
+  // teléfono sin llenar la cédula, por ejemplo, se queda acá hasta completarla.
+  const handlePersonalSaved = (updated) => {
+    if (volverAlCarrito && falta === 'documento' && updated.numeroDocumento?.trim()) {
+      navigate('/carrito')
+    }
+  }
+
+  const handleDireccionAgregada = (direcciones) => {
+    if (volverAlCarrito && falta === 'direccion' && direcciones.length > 0) {
+      navigate('/carrito')
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-6 pb-16">
       <h1 className="text-2xl font-black text-black mb-6">Configuración</h1>
       <div className="max-w-2xl space-y-4">
+        {/* Categorías — solo filtran qué sección se muestra */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setActiveTab(key)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border transition-all ${
+                activeTab === key ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'
+              }`}
+            >
+              <Icon size={13} /> {label}
+            </button>
+          ))}
+        </div>
+
+        {volverAlCarrito && (
+          <div className="bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 flex items-center gap-2">
+            <ShoppingBag size={14} className="flex-shrink-0" />
+            {falta === 'documento'
+              ? 'Registra tu número de documento y volverás al carrito automáticamente.'
+              : 'Agrega una dirección y volverás al carrito automáticamente.'}
+          </div>
+        )}
+
         {loading && (
           <div className="bg-white border border-gray-100 p-5 text-sm text-gray-500">
             Cargando información...
@@ -545,14 +604,25 @@ export default function ConfiguracionPage() {
         )}
         {!loading && !error && (
           <>
-            <PersonalSection profile={profile} onProfileSaved={setProfile} />
-            <DireccionesSection
-              direcciones={profile.direcciones}
-              onDireccionesSaved={handleDireccionesSaved}
-            />
-            <PreferenciasSection profile={profile} onProfileSaved={setProfile} />
-            <ContrasenaSection />
-            <CerrarSesionSection />
+            {activeTab === 'cuenta' && (
+              <PersonalSection profile={profile} onProfileSaved={setProfile} onSaved={handlePersonalSaved} />
+            )}
+            {activeTab === 'direcciones' && (
+              <DireccionesSection
+                direcciones={profile.direcciones}
+                onDireccionesSaved={handleDireccionesSaved}
+                onAdded={handleDireccionAgregada}
+              />
+            )}
+            {activeTab === 'preferencias' && (
+              <PreferenciasSection profile={profile} onProfileSaved={setProfile} />
+            )}
+            {activeTab === 'seguridad' && (
+              <div className="space-y-4">
+                <ContrasenaSection />
+                <CerrarSesionSection />
+              </div>
+            )}
           </>
         )}
       </div>
