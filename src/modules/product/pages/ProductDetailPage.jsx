@@ -13,6 +13,7 @@ import { addReciente } from '../../../services/recentService'
 import { registrarEvento } from '../../../services/eventoService'
 import { registrarVisita } from '../../../services/visitaService'
 import ProductCard from '../../../components/ui/ProductCard'
+import NotFoundPage from '../../error/pages/NotFoundPage'
 import ShareMenu from '../../../components/ui/ShareMenu'
 import GuiaTallasModal from '../../../components/ui/GuiaTallasModal'
 import { useCart } from '../../../context/CartContext'
@@ -353,12 +354,7 @@ export default function ProductDetailPage() {
   }
 
   if (notFound || !product) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-20 text-center">
-        <p className="text-xl font-bold text-black">Producto no encontrado</p>
-        <button onClick={() => navigate('/')} className="btn-primary mt-5 mx-auto">Ir al inicio</button>
-      </div>
-    )
+    return <NotFoundPage titulo="Producto no encontrado" mensaje="Este producto no existe o ya no está disponible." />
   }
 
   const finalBase = product.precioFinal ?? product.precio

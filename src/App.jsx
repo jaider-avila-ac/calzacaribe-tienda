@@ -21,6 +21,7 @@ import ConfiguracionPage from './modules/profile/pages/ConfiguracionPage'
 import NotificationsPage from './modules/notifications/pages/NotificationsPage'
 import FavoritesPage from './modules/favorites/pages/FavoritesPage'
 import SearchPage from './modules/search/pages/SearchPage'
+import NotFoundPage from './modules/error/pages/NotFoundPage'
 import CookieConsentBanner from './components/layout/CookieConsentBanner'
 import { registrarVisita } from './services/visitaService'
 
@@ -68,6 +69,9 @@ export default function App() {
                 <Route path="notificaciones" element={<NotificationsPage />} />
                 <Route path="favoritos" element={<FavoritesPage />} />
               </Route>
+
+              {/* Cualquier dirección que no exista */}
+              <Route path="*" element={<NotFoundPage />} />
             </Route>
           </Routes>
         </BrowserRouter>
