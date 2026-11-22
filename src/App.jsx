@@ -27,7 +27,13 @@ import { registrarVisita } from './services/visitaService'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
-  useLayoutEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  // El navegador restaura solo la posición de scroll al volver con atrás/adelante
+  // (history.scrollRestoration = 'auto' por defecto) y eso pisa este reseteo —
+  // lo desactivamos para que SIEMPRE sea esta lógica la que decide, no el navegador.
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual'
+    window.scrollTo(0, 0)
+  }, [pathname])
   return null
 }
 
