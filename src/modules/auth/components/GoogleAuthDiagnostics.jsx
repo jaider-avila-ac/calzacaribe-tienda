@@ -34,12 +34,14 @@ export default function GoogleAuthDiagnostics({ forceVisible = false }) {
   if (!forceVisible && !queryEnabled) return null
 
   const report = JSON.stringify({ generated_at: new Date().toISOString(), events }, null, 2)
+  // Si el portapapeles falla (navegador viejo, permiso denegado), el texto ya está visible y
+  // seleccionable en el <pre> de abajo — sin diálogo nativo del navegador como respaldo.
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(report)
       setCopied(true)
     } catch {
-      window.prompt('Copia este diagnóstico:', report)
+      setCopied(false)
     }
   }
 

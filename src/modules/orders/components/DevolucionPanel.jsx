@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Loader2, PackageX, Upload, X } from 'lucide-react'
 import { pedidoService, uploadFotoDevolucion } from '../../../services/pedidoService'
 
+// PENDIENTE_DUO_CHIC: exige un motivo con detalle real (no un "no me gustó" de 3 palabras) —
+// el equipo de calidad necesita algo concreto para evaluar el reclamo.
+const MOTIVO_MIN_LEN = 15
+
 const ESTADO_INFO = {
   pendiente: { label: 'Solicitud en revisión', color: 'text-amber-600' },
   aprobada: { label: 'Devolución aprobada', color: 'text-green-700' },
@@ -44,7 +48,7 @@ export default function DevolucionPanel({ numero, estadoPedido }) {
 
   const handleEnviarSolicitud = async () => {
     if (!tipo) { setError('Indica qué pasó con tu pedido'); return }
-    if (!motivo.trim()) { setError('Cuéntanos por qué quieres devolver el pedido'); return }
+    if (motivo.trim().length < MOTIVO_MIN_LEN) { setError(`Cuéntanos con más detalle qué pasó (mínimo ${MOTIVO_MIN_LEN} caracteres)`); return }
     setLoading(true)
     setError('')
     try {
@@ -197,10 +201,11 @@ export default function DevolucionPanel({ numero, estadoPedido }) {
           <textarea
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
-            placeholder={tipo === 'defecto' ? 'Describe el defecto que notaste...' : 'Cuéntanos qué pasó con tu pedido...'}
+            placeholder={tipo === 'defecto' ? 'Describe el defecto con detalle: qué parte, desde cuándo lo notaste...' : 'Cuéntanos con detalle qué pasó con tu pedido...'}
             rows={3}
             className="w-full border border-gray-200 px-3 py-2 text-xs focus:outline-none focus:border-black resize-none"
           />
+          <p className="text-[10px] text-gray-400">Mínimo {MOTIVO_MIN_LEN} caracteres — entre más detalle, más rápido lo revisamos.</p>
           <div className="flex flex-wrap gap-2">
             {fotos.map((f, i) => (
               <div key={i} className="relative w-14 h-14 flex-shrink-0">

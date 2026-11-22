@@ -54,6 +54,14 @@ export default function CartPage() {
   const [acceptDatos, setAcceptDatos] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState('')
+
+  // PENDIENTE_DUO_CHIC — cupón: solo se valida "en vivo" acá (nunca consume un uso); el canje
+  // real pasa en el backend, al crear el pedido, usando este mismo código.
+  const [cuponInput, setCuponInput] = useState('')
+  const [cuponAplicado, setCuponAplicado] = useState(null) // ValidarCuponResponse si valido === true
+  const [cuponError, setCuponError] = useState('')
+  const [cuponChecking, setCuponChecking] = useState(false)
+  const descuentoPesos = cuponAplicado ? Math.round(cuponAplicado.descuento_centavos / 100) : 0
   // Mutex SINCRÓNICO (no useState — su efecto sobre el próximo render no es inmediato, ver
   // REAUDITORIA_FUNCIONAL_E_IDEMPOTENCIA.md sección 3.1): si el usuario hace doble clic antes de
   // que React desactive el botón, la segunda invocación se corta acá mismo, sin llegar siquiera
@@ -181,13 +189,41 @@ export default function CartPage() {
 
   const setCardField = (key) => (e) => setCard((prev) => ({ ...prev, [key]: e.target.value }))
 
+  const handleAplicarCupon = async () => {
+    const codigo = cuponInput.trim()
+    if (!codigo) return
+    setCuponChecking(true)
+    setCuponError('')
+    try {
+      const data = await pedidoService.validarCupon(codigo)
+      if (data.valido) {
+        setCuponAplicado(data)
+        setCuponError('')
+      } else {
+        setCuponAplicado(null)
+        setCuponError(data.motivo || 'Ese cupón no es válido')
+      }
+    } catch (err) {
+      setCuponAplicado(null)
+      setCuponError(err.message || 'No se pudo validar el cupón')
+    } finally {
+      setCuponChecking(false)
+    }
+  }
+
+  const handleQuitarCupon = () => {
+    setCuponAplicado(null)
+    setCuponInput('')
+    setCuponError('')
+  }
+
   const handlePagarWompi = async () => {
     if (checkoutMutexRef.current) return
     checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
 
-    const intent = { direccionId: selectedDir.id, metodo: 'wompi', cart }
+    const intent = { direccionId: selectedDir.id, metodo: 'wompi', cart, cuponCodigo: cuponAplicado?.codigo }
 
     // Persistida en sessionStorage y atada a la intención (dirección + carrito), con expiración
     // propia a los 3 min (ver checkoutIntent.js) — si la respuesta se pierde por timeout y el
@@ -196,7 +232,7 @@ export default function CartPage() {
     // referencia — así nunca se reintenta contra una que Wompi ya haya cerrado.
     const idempotencyKey = getOrCreateIdempotencyKey(intent)
     try {
-      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey, esEnvioCalculado ? envioReal?.token : null)
+      const data = await pedidoService.checkoutHospedado(selectedDir.id, idempotencyKey, esEnvioCalculado ? envioReal?.token : null, cuponAplicado?.codigo)
       // NO se limpia la clave acá (ver Q-01, cuarta auditoría): obtener la URL de Wompi no es un
       // resultado definitivo del pago, solo del PEDIDO. Si el usuario cierra la ventana, vuelve al
       // carrito y paga de nuevo antes de que el pago se resuelva, debe reusar la MISMA clave —así
@@ -218,7 +254,7 @@ export default function CartPage() {
     checkoutMutexRef.current = true
     setProcessing(true)
     setPaymentError('')
-    const idempotencyKey = getOrCreateIdempotencyKey({ direccionId: selectedDir.id, metodo: 'tarjeta', cart })
+    const idempotencyKey = getOrCreateIdempotencyKey({ direccionId: selectedDir.id, metodo: 'tarjeta', cart, cuponCodigo: cuponAplicado?.codigo })
     try {
       const cardToken = await tokenizeCard(
         { number: card.numero, cvc: card.cvc, expMonth: card.mes, expYear: card.anio, cardHolder: card.titular },
@@ -232,6 +268,7 @@ export default function CartPage() {
         personalAuthToken: acceptanceTokens.personal_auth_token,
         idempotencyKey,
         cotizacionToken: esEnvioCalculado ? envioReal?.token : null,
+        cuponCodigo: cuponAplicado?.codigo,
       })
       if (data.status === 'DECLINED' || data.status === 'ERROR') {
         setPaymentError(data.mensaje)
@@ -288,6 +325,7 @@ export default function CartPage() {
   // devuelve el carrito — Calzacaribe (contra_entrega) nunca entra por esta rama.
   const envioMostrado = esEnvioCalculado && envioReal ? envioReal.precio : shipping
   const grandTotalMostrado = esEnvioCalculado && envioReal ? total + envioReal.precio : grandTotal
+  const totalConDescuento = Math.max(0, grandTotalMostrado - descuentoPesos)
 
   const waMessage = encodeURIComponent(
     'Pedido Calzacaribe\n\n' +
@@ -465,11 +503,51 @@ export default function CartPage() {
                 El costo del envío lo pagas directo al transportador cuando recibes tu pedido.
               </p>
             )}
+            {cuponAplicado && (
+              <div className="flex justify-between text-accent-dark">
+                <span>Cupón {cuponAplicado.codigo}</span>
+                <span className="font-semibold">-{fmt(descuentoPesos)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Cupón de descuento */}
+          <div className="border-t border-gray-100 pt-3">
+            {cuponAplicado ? (
+              <div className="flex items-center justify-between gap-2 p-2.5 bg-gray-50 border border-gray-100">
+                <p className="text-xs text-gray-600">
+                  Cupón <span className="font-bold text-black font-mono">{cuponAplicado.codigo}</span> aplicado
+                </p>
+                <button onClick={handleQuitarCupon} className="text-xs text-gray-400 hover:text-red-500 transition-colors flex-shrink-0">
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={cuponInput}
+                  onChange={(e) => setCuponInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAplicarCupon() } }}
+                  placeholder="Código de cupón"
+                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 focus:border-black focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleAplicarCupon}
+                  disabled={cuponChecking || !cuponInput.trim()}
+                  className="px-4 py-2 text-xs font-bold border border-gray-200 text-gray-700 hover:border-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+                >
+                  {cuponChecking ? '...' : 'Aplicar'}
+                </button>
+              </div>
+            )}
+            {cuponError && <p className="text-xs text-red-500 mt-1.5">{cuponError}</p>}
           </div>
 
           <div className="border-t border-gray-100 pt-3 flex justify-between">
             <span className="font-bold text-black">Total</span>
-            <span className="text-xl font-black text-black">{fmt(grandTotalMostrado)}</span>
+            <span className="text-xl font-black text-black">{fmt(totalConDescuento)}</span>
           </div>
 
           {/* Método de pago */}

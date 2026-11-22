@@ -12,16 +12,18 @@
 const STORAGE_KEY = 'checkout_idempotency_v1'
 const MAX_EDAD_MS = 3 * 60 * 1000 // 3 min — mismo margen que el polling de PedidoResultadoPage
 
-function firmaIntencion({ direccionId, metodo, cart }) {
+function firmaIntencion({ direccionId, metodo, cart, cuponCodigo }) {
   const items = [...(cart ?? [])]
     .map((item) => `${item.itemId ?? item.id}:${item.cantidad}`)
     .sort()
     .join(',')
-  return `${direccionId}|${metodo}|${items}`
+  // PENDIENTE_DUO_CHIC: el cupón cambia lo que se cobra, así que también cambia la intención —
+  // si no, aplicar/quitar un cupón antes de pagar reutilizaría una clave atada a otro total.
+  return `${direccionId}|${metodo}|${items}|${cuponCodigo ?? ''}`
 }
 
-export function getOrCreateIdempotencyKey({ direccionId, metodo, cart }) {
-  const firma = firmaIntencion({ direccionId, metodo, cart })
+export function getOrCreateIdempotencyKey({ direccionId, metodo, cart, cuponCodigo }) {
+  const firma = firmaIntencion({ direccionId, metodo, cart, cuponCodigo })
   let guardado = null
   try {
     guardado = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || 'null')

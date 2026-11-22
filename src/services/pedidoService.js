@@ -10,14 +10,14 @@ export const pedidoService = {
   // cotizacionToken: obligatorio para tiendas con envío calculado ('envia') — el token que
   // devolvió getEnvioCotizacion(), congelando la cotización EXACTA que se le mostró al cliente
   // (ver CotizacionTokenService en el backend). null para tiendas contra_entrega/fijo.
-  checkoutHospedado: (direccionId, idempotencyKey, cotizacionToken = null) =>
+  checkoutHospedado: (direccionId, idempotencyKey, cotizacionToken = null, cuponCodigo = null) =>
     fetchAuth('/pedidos/checkout', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
-      body: JSON.stringify({ direccion_id: direccionId, cotizacion_token: cotizacionToken }),
+      body: JSON.stringify({ direccion_id: direccionId, cotizacion_token: cotizacionToken, cupon_codigo: cuponCodigo || null }),
     }),
 
-  checkoutTarjeta: ({ direccionId, cardToken, acceptanceToken, personalAuthToken, idempotencyKey, cotizacionToken = null }) =>
+  checkoutTarjeta: ({ direccionId, cardToken, acceptanceToken, personalAuthToken, idempotencyKey, cotizacionToken = null, cuponCodigo }) =>
     fetchAuth('/pedidos/checkout/tarjeta', {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey },
@@ -27,8 +27,14 @@ export const pedidoService = {
         acceptance_token: acceptanceToken,
         personal_auth_token: personalAuthToken,
         cotizacion_token: cotizacionToken,
+        cupon_codigo: cuponCodigo || null,
       }),
     }),
+
+  // PENDIENTE_DUO_CHIC — valida un cupón contra el carrito actual SIN consumir un uso (el canje
+  // real pasa en el checkout). Ver CuponPublicController.
+  validarCupon: (codigo) =>
+    fetchAuth('/cupones/validar', { method: 'POST', body: JSON.stringify({ codigo }) }),
 
   misCompras: () => fetchAuth('/pedidos'),
 
